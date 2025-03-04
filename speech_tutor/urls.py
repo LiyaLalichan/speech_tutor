@@ -19,8 +19,9 @@ from django.urls import path, include
 from accounts.views import home  # Import the home view
 
 urlpatterns = [
-    path('', home, name='home'),  # Add home page
+    path('', home, name='home'),  # Home page
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
+    path('accounts/', include('accounts.urls')),  # User authentication
+    path('speech/', include('speech_processing.urls')),  # ✅ Add speech_processing URLs
 ]
 

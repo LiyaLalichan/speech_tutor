@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Practice Words</title>
+</head>
+<body>
+    <h1>Click a Word to Practice</h1>
+
+    {% if words %}
+        <ul>
+            {% for word in words %}
+                <li>
+                    <button onclick="playAudio('{{ word.text }}')">🔊 Hear "{{ word.text }}"</button>
+                    <button onclick="startRecognition('{{ word.text }}')">🎤 Speak "{{ word.text }}"</button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No words available. Please add words in the database.</p>
+    {% endif %}
+
+    <p id="expected"></p>
+    <p id="spoken"></p>
+    <p id="result"></p>
+    <audio id="audio-player" controls hidden></audio>
+
+    <script>
+        function playAudio(word) {
+            fetch(`/speech/audio/${word}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.audio_url) {
+                        let audio = document.getElementById("audio-player");
+                        audio.src = data.audio_url;
+                        audio.play();
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                });
+        }
+
+        function startRecognition(word) {
+            fetch(`/speech/recognize/${word}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("expected").innerText = "✅ Expected: " + data.expected_word;
+                    document.getElementById("spoken").innerText = "❌ You said: " + data.spoken_word;
+                    document.getElementById("result").innerText = data.message;
+
+                    if (data.audio_url) {
+                        let audio = document.getElementById("audio-player");
+                        audio.src = data.audio_url;
+                        audio.play();
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
