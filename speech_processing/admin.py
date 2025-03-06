@@ -1,3 +1,4 @@
 from django.contrib import admin
+from .models import ExpectedSpeech
 
-# Register your models here.
+admin.site.register(ExpectedSpeech)  # ✅ Enable in Django Admin

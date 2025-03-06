@@ -2,16 +2,37 @@
 <html lang="en">
 <head>
     <title>Practice Words</title>
+    <style>
+        .correct { color: green; }
+        .incorrect { color: red; }
+        .button-container {
+            margin-top: 20px;
+        }
+        .button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button.clear {
+            background-color: #f44336;
+        }
+        .button.back {
+            background-color: #2196F3;
+        }
+    </style>
 </head>
 <body>
     <h1>Click a Word to Practice</h1>
 
     {% if words %}
-        <ul>
+        <ul id="word-list">
             {% for word in words %}
                 <li>
-                    <button onclick="playAudio('{{ word.text }}')">🔊 Hear "{{ word.text }}"</button>
-                    <button onclick="startRecognition('{{ word.text }}')">🎤 Speak "{{ word.text }}"</button>
+                    <button onclick="startRecognition('{{ word.text }}')">🎤   "{{ word.text }}"</button>
                 </li>
             {% endfor %}
         </ul>
@@ -19,40 +40,103 @@
         <p>No words available. Please add words in the database.</p>
     {% endif %}
 
-    <p id="expected"></p>
-    <p id="spoken"></p>
-    <p id="result"></p>
-    <audio id="audio-player" controls hidden></audio>
+    <div id="results-container">
+        <p id="status"></p>
+        <p id="expected"></p>
+        <p id="spoken"></p>
+    </div>
+    <audio id="audio-player" controls style="display: none;"></audio>
+
+    <div class="button-container" id="action-buttons" style="display: none;">
+        <button class="button clear" onclick="clearResults()">Clear Results</button>
+        <button class="button back" onclick="showWordList()">Go Back to Words</button>
+    </div>
 
     <script>
         function playAudio(word) {
-            fetch(`/speech/audio/${word}/`)
+            fetch(`/speech/audio/play/${word}/`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.audio_url) {
                         let audio = document.getElementById("audio-player");
                         audio.src = data.audio_url;
+                        audio.style.display = "block";
                         audio.play();
                     } else {
-                        alert("Error: " + data.error);
+                        alert("Error: " + (data.error || "Audio not found"));
                     }
-                });
+                })
+                .catch(error => console.error("Error fetching audio:", error));
         }
 
         function startRecognition(word) {
+            // Clear previous results first
+            clearResults();
+            
+            let statusElement = document.getElementById("status");
+            statusElement.innerText = "🎤 Listening... Please wait";
+            statusElement.style.color = "blue";
+        
             fetch(`/speech/recognize/${word}/`)
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById("expected").innerText = "✅ Expected: " + data.expected_word;
-                    document.getElementById("spoken").innerText = "❌ You said: " + data.spoken_word;
-                    document.getElementById("result").innerText = data.message;
-
+                    // Clear status and display new results
+                    statusElement.innerText = "✅ Processed";
+                    statusElement.style.color = "green";
+                    
+                    // Set expected word
+                    document.getElementById("expected").innerHTML = "✅ Expected: " + data.expected_word;
+                    
+                    // Set spoken word with correct styling
+                    let spokenElement = document.getElementById("spoken");
+                    if (data.expected_word.toLowerCase() === data.spoken_word.toLowerCase()) {
+                        spokenElement.innerHTML = "✅ You said: " + data.spoken_word;
+                        spokenElement.className = "correct";
+                    } else {
+                        spokenElement.innerHTML = "❌ You said: " + data.spoken_word;
+                        spokenElement.className = "incorrect";
+                    }
+        
+                    // Play audio if available
                     if (data.audio_url) {
                         let audio = document.getElementById("audio-player");
                         audio.src = data.audio_url;
+                        audio.style.display = "block";
                         audio.play();
                     }
+                    
+                    // Show the action buttons after results are displayed
+                    document.getElementById("action-buttons").style.display = "block";
+                })
+                .catch(error => {
+                    console.error("Error recognizing speech:", error);
+                    statusElement.innerText = "❌ Error processing speech.";
+                    statusElement.style.color = "red";
+                    // Show action buttons even if there's an error
+                    document.getElementById("action-buttons").style.display = "block";
                 });
+        }
+        
+        function clearResults() {
+            // Clear all result fields
+            document.getElementById("status").innerText = "";
+            document.getElementById("expected").innerText = "";
+            document.getElementById("spoken").innerText = "";
+            
+            // Hide the audio player
+            document.getElementById("audio-player").style.display = "none";
+            
+            // Hide the action buttons until new results are available
+            document.getElementById("action-buttons").style.display = "none";
+        }
+        
+        function showWordList() {
+            // Clear the results
+            clearResults();
+            
+            // The word list should already be visible, but you could add
+            // any additional logic here if needed
+            document.getElementById("word-list").scrollIntoView({ behavior: 'smooth' });
         }
     </script>
 </body>
