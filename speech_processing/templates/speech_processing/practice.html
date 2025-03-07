@@ -2,54 +2,62 @@
 <html lang="en">
 <head>
     <title>Practice Words</title>
-    <style>
-        .correct { color: green; }
-        .incorrect { color: red; }
-        .button-container {
-            margin-top: 20px;
-        }
-        .button {
-            padding: 8px 16px;
-            margin-right: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .button.clear {
-            background-color: #f44336;
-        }
-        .button.back {
-            background-color: #2196F3;
-        }
-    </style>
+    {% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Practice Words</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <h1>Click a Word to Practice</h1>
+    <h1>Pronunciation Practice</h1>
 
-    {% if words %}
-        <ul id="word-list">
-            {% for word in words %}
-                <li>
-                    <button onclick="startRecognition('{{ word.text }}')">🎤   "{{ word.text }}"</button>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
+    {% if categories %}
+        {% for category in categories %}
+            <div class="category-section">
+                <h2 class="category-title">{{ category.name }}</h2>
+                <div class="word-grid">
+                    {% for word in category.words.all %}
+                        <div class="word-item">
+                            <button class="word-button" onclick="startRecognition('{{ word.text }}')">
+                                🎤 {{ word.text }}
+                            </button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if uncategorized_words %}
+        <div class="category-section">
+            <h2 class="category-title">Other Words</h2>
+            <div class="word-grid">
+                {% for word in uncategorized_words %}
+                    <div class="word-item">
+                        <button class="word-button" onclick="startRecognition('{{ word.text }}')">
+                            🎤 {{ word.text }}
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {% if not categories and not uncategorized_words %}
         <p>No words available. Please add words in the database.</p>
     {% endif %}
 
-    <div id="results-container">
+    <div id="results-container" style="display: none;">
         <p id="status"></p>
         <p id="expected"></p>
         <p id="spoken"></p>
-    </div>
-    <audio id="audio-player" controls style="display: none;"></audio>
-
-    <div class="button-container" id="action-buttons" style="display: none;">
-        <button class="button clear" onclick="clearResults()">Clear Results</button>
-        <button class="button back" onclick="showWordList()">Go Back to Words</button>
+        <audio id="audio-player" controls style="display: none;"></audio>
+        
+        <div class="button-container" id="action-buttons">
+            <button class="button clear" onclick="clearResults()">Clear Results</button>
+            <button class="button back" onclick="showWordList()">Go Back to Words</button>
+        </div>
     </div>
 
     <script>
@@ -72,6 +80,12 @@
         function startRecognition(word) {
             // Clear previous results first
             clearResults();
+            
+            // Show the results container
+            document.getElementById("results-container").style.display = "block";
+            
+            // Scroll to results
+            document.getElementById("results-container").scrollIntoView({ behavior: 'smooth' });
             
             let statusElement = document.getElementById("status");
             statusElement.innerText = "🎤 Listening... Please wait";
@@ -104,16 +118,11 @@
                         audio.style.display = "block";
                         audio.play();
                     }
-                    
-                    // Show the action buttons after results are displayed
-                    document.getElementById("action-buttons").style.display = "block";
                 })
                 .catch(error => {
                     console.error("Error recognizing speech:", error);
                     statusElement.innerText = "❌ Error processing speech.";
                     statusElement.style.color = "red";
-                    // Show action buttons even if there's an error
-                    document.getElementById("action-buttons").style.display = "block";
                 });
         }
         
@@ -125,18 +134,14 @@
             
             // Hide the audio player
             document.getElementById("audio-player").style.display = "none";
-            
-            // Hide the action buttons until new results are available
-            document.getElementById("action-buttons").style.display = "none";
         }
         
         function showWordList() {
-            // Clear the results
-            clearResults();
+            // Hide the results container
+            document.getElementById("results-container").style.display = "none";
             
-            // The word list should already be visible, but you could add
-            // any additional logic here if needed
-            document.getElementById("word-list").scrollIntoView({ behavior: 'smooth' });
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>
 </body>

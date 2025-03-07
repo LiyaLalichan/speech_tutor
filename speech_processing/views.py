@@ -5,12 +5,24 @@ import pronouncing
 from gtts import gTTS
 import os
 
-from .models import ExpectedSpeech
+# Add this line to import both models
+from .models import ExpectedSpeech, Category
+
+
 
 # ✅ Display Words for Practice
+# views.py
 def practice_words(request):
-    words = ExpectedSpeech.objects.all()
-    return render(request, 'speech_processing/practice.html', {'words': words})
+    # Get all categories with their words
+    categories = Category.objects.all().prefetch_related('words')
+    
+    # Also get any uncategorized words (if any exist in your database)
+    uncategorized_words = ExpectedSpeech.objects.filter(category__isnull=True)
+    
+    return render(request, 'speech_processing/practice.html', {
+        'categories': categories,
+        'uncategorized_words': uncategorized_words
+    })
 
 def recognize_word(request, word):
     recognizer = sr.Recognizer()
