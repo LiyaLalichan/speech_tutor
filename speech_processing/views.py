@@ -3,6 +3,7 @@ from django.http import JsonResponse
 import speech_recognition as sr
 import pronouncing
 from gtts import gTTS
+from django.contrib.auth.decorators import login_required
 import os
 
 # Add this line to import both models
@@ -12,6 +13,7 @@ from .models import ExpectedSpeech, Category
 
 # ✅ Display Words for Practice
 # views.py
+@login_required
 def practice_words(request):
     # Get all categories with their words
     categories = Category.objects.all().prefetch_related('words')

@@ -127,7 +127,7 @@ import os
 
 STATIC_URL = '/static/'
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),os.path.join(BASE_DIR, 'speech_processing', 'static'),]  # ✅ Tell Django where to look
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static'),os.path.join(BASE_DIR, 'speech_processing', 'static'),os.path.join(BASE_DIR, 'accounts', 'static')]  # ✅ Tell Django where to look
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ✅ Used for collectstatic
 
 

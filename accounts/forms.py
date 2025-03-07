@@ -1,11 +1,11 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import CustomUser  # Import your custom user model
+from .models import CustomUser
 
-class RegisterForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    phone_number = forms.CharField(max_length=15, required=True)
+class CustomUserCreationForm(UserCreationForm):
+    dob = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}))
+    phone = forms.CharField(max_length=10, widget=forms.TextInput(attrs={'pattern': '[0-9]{10}'}))
 
     class Meta:
-        model = CustomUser  # Use CustomUser instead of default User
-        fields = ['username', 'email', 'phone_number', 'password1', 'password2']
+        model = CustomUser
+        fields = ["username", "dob", "email", "phone", "password1", "password2"]

@@ -1,6 +1,36 @@
-<h2>Register</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign Up</button>
-</form>
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="{% static 'accounts/css/register.css' %}">
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Register</h1>
+    </div>
+
+    <form method="post" name="register" onsubmit="return validateRegister();">
+        {% csrf_token %}
+
+        <ul>
+            <li>Name: <input type="text" name="name" required> <span id="name-error" class="error"></span></li>
+            <li>Date of Birth: <input type="date" name="dob" required> <span id="dob-error" class="error"></span></li>
+            <li>Email: <input type="email" name="email" required> <span id="email-error" class="error"></span></li>
+            <li>Phone Number: <input type="tel" name="phone" pattern="[0-9]{10}" required> <span id="phone-error" class="error"></span></li>
+            <li>Username: <input type="text" name="username" required> <span id="username-error" class="error"></span></li>
+            <li>Password: <input type="password" name="password" required> <span id="password-error" class="error"></span></li>
+            <li>Confirm Password: <input type="password" name="confirm_password" required> <span id="confirm_password-error" class="error"></span></li>
+        </ul>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
+</div>
+
+<script src="{% static 'accounts/js/register.js' %}"></script>  <!-- ✅ Add JavaScript validation -->
+</body>
+</html>

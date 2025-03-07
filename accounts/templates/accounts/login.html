@@ -1,6 +1,33 @@
-<h2>Login</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'accounts/css/login.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Login</h1>
+
+        {% if form.errors %}
+            <p style="color: red;">Invalid username or password. Please try again.</p>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+        
+            <div>
+                <label>Username:</label>
+                <input class="username" type="text" name="username" required>
+            </div>
+            
+            <div>
+                <label>Password:</label>
+                <input class="password" type="password" name="password" required>
+            </div>
+
+            <button type="submit" class="submit">Log In</button>
+        </form>
+    </div> <!-- ✅ Properly closed div -->
+</body>
+</html>
