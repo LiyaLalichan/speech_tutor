@@ -1,36 +1,130 @@
-{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    {% load static %}
     <link rel="stylesheet" href="{% static 'accounts/css/register.css' %}">
 </head>
 <body>
-
-<div class="container">
-    <div class="header">
-        <h1>Register</h1>
+    <div class="page-background">
+        <div class="registration-container">
+            <h1 class="form-title" style="color: #3563E9">Register</h1>
+            
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <!-- Name field -->
+                <div class="form-group {% if form.name.errors %}has-error{% endif %}" style="--order: 1;">
+                    <label for="{{ form.name.id_for_label }}">Name:</label>
+                    <input type="text" name="{{ form.name.html_name }}" id="{{ form.name.id_for_label }}" 
+                           class="form-control" value="{{ form.name.value|default:'' }}" required>
+                    {% if form.name.errors %}
+                        <div class="error-text">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Put date and email in a row -->
+                <div class="form-row">
+                    <!-- Date of Birth field -->
+                    <div class="form-group {% if form.dob.errors %}has-error{% endif %}" style="--order: 2;">
+                        <label for="{{ form.dob.id_for_label }}">Date of Birth:</label>
+                        <input type="date" name="{{ form.dob.html_name }}" id="{{ form.dob.id_for_label }}" 
+                               class="form-control date-picker" value="{{ form.dob.value|default:'' }}" required>
+                        {% if form.dob.errors %}
+                            <div class="error-text">{{ form.dob.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Email field -->
+                    <div class="form-group {% if form.email.errors %}has-error{% endif %}" style="--order: 3;">
+                        <label for="{{ form.email.id_for_label }}">Email:</label>
+                        <input type="email" name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}" 
+                               class="form-control" value="{{ form.email.value|default:'' }}" required>
+                        {% if form.email.errors %}
+                            <div class="error-text">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Put phone and username in a row -->
+                <div class="form-row">
+                    <!-- Phone Number field -->
+                    <div class="form-group {% if form.phone.errors %}has-error{% endif %}" style="--order: 4;">
+                        <label for="{{ form.phone.id_for_label }}">Phone Number:</label>
+                        <input type="tel" name="{{ form.phone.html_name }}" id="{{ form.phone.id_for_label }}" 
+                               class="form-control" value="{{ form.phone.value|default:'' }}" required 
+                               pattern="[0-9]{10}" title="Please enter a 10-digit phone number">
+                        {% if form.phone.errors %}
+                            <div class="error-text">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Username field -->
+                    <div class="form-group {% if form.username.errors %}has-error{% endif %}" style="--order: 5;">
+                        <label for="{{ form.username.id_for_label }}">Username:</label>
+                        <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}" 
+                               class="form-control" value="{{ form.username.value|default:'' }}" required>
+                        {% if form.username.errors %}
+                            <div class="error-text">{{ form.username.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Password field -->
+                <div class="form-group {% if form.password1.errors %}has-error{% endif %}" style="--order: 6;">
+                    <label for="{{ form.password1.id_for_label }}">Password:</label>
+                    <input type="password" name="{{ form.password1.html_name }}" id="{{ form.password1.id_for_label }}" 
+                           class="form-control password-input" required>
+                    {% if form.password1.errors %}
+                        <div class="error-text">{{ form.password1.errors.0 }}</div>
+                    {% endif %}
+                    
+                    <div class="password-requirements">
+                        <p>Password requirements:</p>
+                        <div id="length-requirement" class="password-requirement">
+                            • At least 6 characters
+                        </div>
+                        <div id="uppercase-requirement" class="password-requirement">
+                            • At least one uppercase letter
+                        </div>
+                        <div id="number-requirement" class="password-requirement">
+                            • At least one number
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Confirm Password field -->
+                <div class="form-group {% if form.password2.errors %}has-error{% endif %}" style="--order: 7;">
+                    <label for="{{ form.password2.id_for_label }}">Confirm Password:</label>
+                    <input type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}" 
+                           class="form-control confirm-password" required>
+                    {% if form.password2.errors %}
+                        <div class="error-text">{{ form.password2.errors.0 }}</div>
+                    {% endif %}
+                    <div id="password-match" class="error-text" style="display: none;">
+                        Passwords do not match
+                    </div>
+                </div>
+                
+                {% if form.non_field_errors %}
+                    <div class="error-text">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <button type="submit" class="submit-btn">Register</button>
+            </form>
+            
+            <div class="login-link">
+                Already have an account? <a href="{% url 'login' %}">Log in</a>
+            </div>
+        </div>
     </div>
 
-    <form method="post" name="register" onsubmit="return validateRegister();">
-        {% csrf_token %}
-
-        <ul>
-            <li>Name: <input type="text" name="name" required> <span id="name-error" class="error"></span></li>
-            <li>Date of Birth: <input type="date" name="dob" required> <span id="dob-error" class="error"></span></li>
-            <li>Email: <input type="email" name="email" required> <span id="email-error" class="error"></span></li>
-            <li>Phone Number: <input type="tel" name="phone" pattern="[0-9]{10}" required> <span id="phone-error" class="error"></span></li>
-            <li>Username: <input type="text" name="username" required> <span id="username-error" class="error"></span></li>
-            <li>Password: <input type="password" name="password" required> <span id="password-error" class="error"></span></li>
-            <li>Confirm Password: <input type="password" name="confirm_password" required> <span id="confirm_password-error" class="error"></span></li>
-        </ul>
-
-        <button type="submit">Register</button>
-    </form>
-
-    <p>Already have an account? <a href="{% url 'login' %}">Login</a></p>
-</div>
-
-<script src="{% static 'accounts/js/register.js' %}"></script>  <!-- ✅ Add JavaScript validation -->
+    <script src="{% static 'accounts/js/register.js' %}"></script>
 </body>
 </html>

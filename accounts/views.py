@@ -1,37 +1,50 @@
+# accounts/views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
-from django.contrib.auth.forms import AuthenticationForm  # ✅ Import the missing form
-from .forms import CustomUserCreationForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib import messages
+from django.http import HttpResponse
+from django.contrib.sessions.models import Session
+
+from .forms import CustomUserCreationForm  # Changed from UserRegistrationForm
 
 def home(request):
-    return render(request, 'accounts/home.html')  # ✅ Load the new UI from accounts
+    return render(request, 'accounts/home.html')
 
-
-# ✅ Register a User
-def register(request):
-    if request.method == "POST":
-        form = CustomUserCreationForm(request.POST)
+def register_view(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)  # Changed from UserRegistrationForm
         if form.is_valid():
-            user = form.save()
-            login(request, user)  # ✅ Log in the user after registration
-            return redirect("home")  # ✅ Redirect to home page
+            form.save()
+            messages.success(request, 'Account created successfully! You can now log in.')
+            return redirect('login')
     else:
-        form = CustomUserCreationForm()
-    return render(request, "accounts/register.html", {"form": form})
+        form = CustomUserCreationForm()  # Changed from UserRegistrationForm
+    
+    return render(request, 'accounts/register.html', {'form': form})
 
-# ✅ Login View
+# accounts/views.py
 def user_login(request):
     if request.method == "POST":
-        form = AuthenticationForm(data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        from django.contrib.auth import authenticate
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
             login(request, user)
-            return redirect("/speech/practice/")  # ✅ Redirect to home page after login
-    else:
-        form = AuthenticationForm()
-    return render(request, "accounts/login.html", {"form": form})
+            return redirect("/speech_processing/practice/")
+        else:
+            messages.error(request, "Invalid username or password.")
+    
+    return render(request, "accounts/login.html")
 
-# ✅ Logout View
 def user_logout(request):
     logout(request)
-    return redirect("login")  # ✅ Redirect to login page after logout
+    messages.info(request, "You have been logged out successfully.")
+    return redirect("login")
+
+def logout_all(request):
+    Session.objects.all().delete()
+    return HttpResponse("All users have been logged out!")

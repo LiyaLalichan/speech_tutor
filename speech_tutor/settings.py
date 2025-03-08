@@ -136,3 +136,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # ✅ Used for collectstati
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.CustomUser'
+# Session settings
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Set to True if you want sessions to expire when browser closes
+# In settings.py
+LOGIN_URL = 'accounts/login/'  # URL for login if not authenticated
+LOGOUT_URL = 'accounts/logout/'  # URL for logout
+LOGIN_REDIRECT_URL = '/speech_processing/practice/'  # Where to redirect after successful login
+LOGOUT_REDIRECT_URL = '/accounts/login/'  # Where to redirect after logout
