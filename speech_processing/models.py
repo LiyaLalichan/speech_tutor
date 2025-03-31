@@ -1,31 +1,127 @@
-# models.py
 from django.db import models
+from django.utils.translation import gettext_lazy as _
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Language(models.Model):
+    code = models.CharField(max_length=5, unique=True)
+    name = models.CharField(max_length=50)
+    native_name = models.CharField(max_length=50, default='', blank=True)
+    is_active = models.BooleanField(default=True)
+    flag_code = models.CharField(max_length=10, default='', blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    class Meta:
+        verbose_name = _("Language")
+        verbose_name_plural = _("Languages")
+        ordering = ['name']
+    @classmethod
+    def get_default_language(cls):
+        return cls.objects.filter(code='en').first() or cls.objects.create(
+            code='en', 
+            name='English', 
+            native_name='English',
+            is_active=True
+    )
+
 
 class Category(models.Model):
-    name = models.CharField(max_length=100)  # Category name (e.g., "Common Greetings")
-    description = models.TextField(blank=True, null=True)  # Optional description
-    order = models.IntegerField(default=0)  # For controlling display order
-    
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    order = models.IntegerField(default=0)
+    language = models.ForeignKey(
+        Language, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='categories'
+    )
+
     def __str__(self):
-        return self.name
-    
+        return f"{self.name} ({self.language.code if self.language else 'No Language'})"
+
     class Meta:
         verbose_name_plural = "Categories"
         ordering = ['order', 'name']
+        unique_together = ('name', 'language')
+
+    @classmethod
+    def get_or_create_default(cls, language):
+        default_category, created = cls.objects.get_or_create(
+            name='Uncategorized',
+            language=language,
+            defaults={
+                'description': 'Default category for words',
+                'order': 0
+            }
+        )
+        return default_category
 
 class ExpectedSpeech(models.Model):
-    text = models.CharField(max_length=255)  # Keeping your existing field
-    category = models.ForeignKey(Category, related_name='words', on_delete=models.CASCADE, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)  # Keeping your existing field
-    order = models.IntegerField(default=0)  # For ordering words within a category
-    
+    text = models.CharField(max_length=255)
+    category = models.ForeignKey(
+        Category, 
+        related_name='words', 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    order = models.IntegerField(default=0)
+    language = models.ForeignKey(
+        Language, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='expected_speeches'
+    )
+    difficulty_level = models.CharField(max_length=50, default="medium")
+
+
     def __str__(self):
-        return self.text
+        return f"{self.text} ({self.language.code if self.language else 'No Language'})"
+
+    class Meta:
+        verbose_name_plural = "Expected Speeches"
+        unique_together = ('text', 'language')
+        ordering = ['order', 'text']
+
+    @classmethod
+    def get_word_for_language(cls, word, language_code):
+        word_instance = cls.objects.filter(text__iexact=word, language__code=language_code).first()
+        if not word_instance:
+            logger.warning(f"Word '{word}' not found in language '{language_code}'.")
+        return word_instance
 
 class SpeechRecord(models.Model):
-    text = models.TextField()  # Keeping your existing field
-    created_at = models.DateTimeField(auto_now_add=True)  # Keeping your existing field
-    expected_speech = models.ForeignKey(ExpectedSpeech, on_delete=models.SET_NULL, null=True, blank=True)
-    
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    expected_speech = models.ForeignKey(
+        ExpectedSpeech, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='speech_records'
+    )
+    language = models.ForeignKey(
+        Language, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True
+    )
+
     def __str__(self):
         return self.text[:50]
+
+    @classmethod
+    def create_record(cls, text, expected_speech=None, language=None):
+        record, created = cls.objects.get_or_create(
+            text=text,
+            expected_speech=expected_speech,
+            language=language
+        )
+        return record

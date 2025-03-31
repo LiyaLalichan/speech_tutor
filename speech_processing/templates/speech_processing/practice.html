@@ -1,164 +1,544 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Practice Words</title>
-    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pronunciation Practice</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        .user-welcome {
+        :root {
+            /* Color Palette */
+            --color-primary: #3498db;      /* Bright Blue */
+            --color-success: #2ecc71;      /* Vibrant Green */
+            --color-error: #e74c3c;        /* Bright Red */
+            --color-neutral-light: #f8f9fa;/* Very Light Gray */
+            --color-neutral-dark: #2c3e50; /* Dark Blue-Gray */
+            --color-background: #ecf0f1;   /* Soft Gray */
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--color-background);
+            margin: 0;
+            color: var(--color-neutral-dark);
+            line-height: 1.6;
+        }
+
+        .navbar {
+            background-color: var(--color-primary);
             color: white;
-            margin-right: 15px;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        .language-selector {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .language-selector select {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid var(--color-primary);
+            border-radius: 6px;
+        }
+
+        .category-section {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .word-button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s;
+        }
+
+        .word-button:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+
+        #results-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: var(--color-neutral-light);
+            border: 1px solid var(--color-primary);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: none;
+        }
+
+        .result-item {
+            margin-bottom: 10px;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        #status {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        #expected {
+            background-color: var(--color-background);
+            color: var(--color-neutral-dark);
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .result-item.correct {
+            background-color: rgba(46, 204, 113, 0.1);
+            color: var(--color-success);
+            border-left: 4px solid var(--color-success);
+        }
+
+        .result-item.incorrect {
+            background-color: rgba(231, 76, 60, 0.1);
+            color: var(--color-error);
+            border-left: 4px solid var(--color-error);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .button {
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .button.clear {
+            background-color: var(--color-error);
+            color: white;
+        }
+
+        .button.back {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        #audio-player {
+            width: 100%;
+            margin-top: 10px;
+            background-color: var(--color-background);
+            border-radius: 6px;
+        }
+
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--color-primary);
+            font-size: 18px;
+        }
+
+        /* New styles for meaning section */
+        #meaning-section {
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(52, 152, 219, 0.1);
+            border-left: 4px solid var(--color-primary);
+        }
+
+        .meaning-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--color-primary);
+        }
+
+        .meaning-content {
+            margin-left: 10px;
+        }
+
+        .meaning-pos {
+            font-style: italic;
+            color: var(--color-neutral-dark);
+            margin-top: 10px;
             font-weight: bold;
         }
-        .username {
-            color: #ffcc00; /* Gold color to highlight the username */
+
+        .meaning-definition {
+            margin-left: 15px;
+            margin-bottom: 5px;
+        }
+
+        .meaning-examples {
+            margin-left: 25px;
+            font-style: italic;
+            color: #555;
+            font-size: 0.9em;
+        }
+        
+        /* Audio icon button */
+        .audio-play-button {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: all 0.3s ease;
+            font-size: 18px;
+        }
+        
+        .audio-play-button:hover {
+            background-color: #2980b9;
+            transform: scale(1.1);
+        }
+        
+        .word-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .audio-icon {
+            margin-top: 5px;
+            color: var(--color-primary);
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .audio-icon:hover {
+            color: #2980b9;
         }
     </style>
 </head>
 <body>
-    <!-- Updated navigation bar with username display -->
-    <nav style="overflow: hidden; padding: 10px 0;">
-        <div style="width: 80%; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+    <nav class="navbar">
+        <div class="navbar-content">
             <div class="user-welcome">
-                Welcome, <span class="username">{{ request.user.username }}</span>!
+                Welcome, <span style="color: #ffcc00;">{{ request.user.username }}</span>!
             </div>
             <div>
-                <a href="{% url 'logout' %}" style="color: white; text-decoration: none; font-weight: bold; padding: 8px 15px; border-radius: 4px;">Logout</a>
+                <a href="{% url 'logout' %}" style="color: white; text-decoration: none; background-color: var(--color-error); padding: 8px 15px; border-radius: 4px;">Logout</a>
             </div>
         </div>
     </nav>
 
-    <h1>Pronunciation Practice</h1>
+    <div class="language-selector">
+        <form method="get">
+            <label for="language-select">Select Language:</label>
+            <select id="language-select" name="language" onchange="this.form.submit()">
+                {% for lang in languages %}
+                <option 
+                    value="{{ lang.code }}" 
+                    {% if lang.code == current_language.code %}selected{% endif %}
+                >
+                    {{ lang.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <h1 style="text-align: center; color: var(--color-neutral-dark);">
+        Pronunciation Practice - {{ current_language.name }}
+    </h1>
 
     {% if categories %}
         {% for category in categories %}
             <div class="category-section">
-                <h2 class="category-title">{{ category.name }}</h2>
+                <h2 style="text-align: center; color: var(--color-primary);">{{ category.name }}</h2>
                 <div class="word-grid">
                     {% for word in category.words.all %}
-                        <div class="word-item">
+                        <div class="word-container">
                             <button class="word-button" onclick="startRecognition('{{ word.text }}')">
                                 🎤 {{ word.text }}
                             </button>
+                            <div class="audio-icon" onclick="playWordAudio('{{ word.text }}')">🔊</div>
                         </div>
                     {% endfor %}
                 </div>
             </div>
         {% endfor %}
+    {% else %}
+        <p style="text-align: center; color: var(--color-error);">
+            No words available for the selected language. Please add words in the database.
+        </p>
     {% endif %}
 
-    {% if uncategorized_words %}
-        <div class="category-section">
-            <h2 class="category-title">Other Words</h2>
-            <div class="word-grid">
-                {% for word in uncategorized_words %}
-                    <div class="word-item">
-                        <button class="word-button" onclick="startRecognition('{{ word.text }}')">
-                            🎤 {{ word.text }}
-                        </button>
-                    </div>
-                {% endfor %}
-            </div>
+    <div id="results-container">
+        <div id="loading-section" class="loading-indicator" style="display: none;">
+            <div class="spinner">🔄</div>
+            <span id="loading-text">Processing...</span>
         </div>
-    {% endif %}
 
-    {% if not categories and not uncategorized_words %}
-        <p>No words available. Please add words in the database.</p>
-    {% endif %}
-
-    <div id="results-container" style="display: none;">
-        <p id="status"></p>
-        <p id="expected"></p>
-        <p id="spoken"></p>
-        <audio id="audio-player" controls style="display: none;"></audio>
-        
-        <div class="button-container" id="action-buttons">
-            <button class="button clear" onclick="clearResults()">Clear Results</button>
-            <button class="button back" onclick="showWordList()">Go Back to Words</button>
+        <div id="result-details">
+            <div id="status" class="result-item"></div>
+            <div id="expected" class="result-item"></div>
+            <div id="spoken" class="result-item"></div>
+            
+            <audio id="audio-player" controls style="display: none;"></audio>
+            
+            <div id="meaning-section" class="result-item">
+                <div class="meaning-title">Word Meaning</div>
+                <div id="word-meaning" class="meaning-content">Loading meaning...</div>
+            </div>            
+            
+            <div class="button-container" id="action-buttons">
+                <button class="button clear" onclick="clearResults()">Clear Results</button>
+                <button class="button back" onclick="showWordList()">Go Back to Words</button>
+            </div>
         </div>
     </div>
 
+    <!-- Hidden audio element for word pronunciation -->
+    <audio id="word-audio" style="display: none;"></audio>
+
     <script>
-        function playAudio(word) {
-            fetch(`/speech/audio/play/${word}/`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.audio_url) {
-                        let audio = document.getElementById("audio-player");
-                        audio.src = data.audio_url;
-                        audio.style.display = "block";
-                        audio.play();
+        // Generate audio URL from word
+        function getAudioUrl(word) {
+            let selectedLanguage = document.getElementById("language-select").value;
+            return `/static/audio/${selectedLanguage}/${word.replace(/[^a-zA-Z0-9]/g, '')}_${selectedLanguage}.mp3`;
+        }
+        
+        // Play audio for a word when clicking the speaker icon
+        function playWordAudio(word) {
+            let audioUrl = getAudioUrl(word);
+            let audio = document.getElementById("word-audio");
+            
+            // First try to get the audio - if it doesn't exist, generate it
+            fetch(audioUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        // Audio file exists, play it
+                        playAudio(audioUrl);
                     } else {
-                        alert("Error: " + (data.error || "Audio not found"));
+                        // Audio doesn't exist, generate it first
+                        generateAndPlayAudio(word);
                     }
                 })
-                .catch(error => console.error("Error fetching audio:", error));
+                .catch(() => {
+                    // Error checking, try to generate
+                    generateAndPlayAudio(word);
+                });
         }
-
-        function startRecognition(word) {
-            // Clear previous results first
-            clearResults();
-            
-            // Show the results container
-            document.getElementById("results-container").style.display = "block";
-            
-            // Scroll to results
-            document.getElementById("results-container").scrollIntoView({ behavior: 'smooth' });
-            
-            let statusElement = document.getElementById("status");
-            statusElement.innerText = "🎤 Listening... Please wait";
-            statusElement.style.color = "blue";
         
-            fetch(`/speech/recognize/${word}/`)
+        // Generate audio file for a word and then play it
+        function generateAndPlayAudio(word) {
+            let selectedLanguage = document.getElementById("language-select").value;
+            
+            // Use the audio generation endpoint
+            fetch(`/speech/generate-audio/?text=${encodeURIComponent(word)}&language=${selectedLanguage}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Clear status and display new results
-                    statusElement.innerText = "✅ Processed";
-                    statusElement.style.color = "green";
-                    
-                    // Set expected word
-                    document.getElementById("expected").innerHTML = "✅ Expected: " + data.expected_word;
-                    
-                    // Set spoken word with correct styling
-                    let spokenElement = document.getElementById("spoken");
-                    if (data.expected_word.toLowerCase() === data.spoken_word.toLowerCase()) {
-                        spokenElement.innerHTML = "✅ You said: " + data.spoken_word;
-                        spokenElement.className = "correct";
-                    } else {
-                        spokenElement.innerHTML = "❌ You said: " + data.spoken_word;
-                        spokenElement.className = "incorrect";
-                    }
-        
-                    // Play audio if available
                     if (data.audio_url) {
-                        let audio = document.getElementById("audio-player");
-                        audio.src = data.audio_url;
-                        audio.style.display = "block";
-                        audio.play();
+                        playAudio(data.audio_url);
                     }
                 })
                 .catch(error => {
-                    console.error("Error recognizing speech:", error);
-                    statusElement.innerText = "❌ Error processing speech.";
-                    statusElement.style.color = "red";
+                    console.error("Error generating audio:", error);
+                });
+        }
+        
+        // Play audio from URL
+        function playAudio(audioUrl) {
+            let audio = document.getElementById("word-audio");
+            audio.src = audioUrl;
+            
+            // Play the audio
+            audio.play().catch(error => {
+                console.warn("Audio playback error:", error);
+            });
+        }
+        
+        function startRecognition(word) {
+            clearResults();
+            let resultsContainer = document.getElementById("results-container");
+            let loadingSection = document.getElementById("loading-section");
+            let resultDetails = document.getElementById("result-details");
+            let meaningSection = document.getElementById("word-meaning");
+            
+            resultsContainer.style.display = "block";
+            loadingSection.style.display = "flex";
+            resultDetails.style.display = "block";
+            resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    
+            let selectedLanguage = document.getElementById("language-select").value;
+            document.getElementById("loading-text").innerText = `Recognizing "${word}"...`;
+    
+            // Speech recognition call
+            fetch(`/speech/recognize/${encodeURIComponent(word)}/?language=${selectedLanguage}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Speech recognition failed');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingSection.style.display = "none";
+    
+                    let statusElement = document.getElementById("status");
+                    let expectedElement = document.getElementById("expected");
+                    let spokenElement = document.getElementById("spoken");
+                    let audioPlayer = document.getElementById("audio-player");
+    
+                    statusElement.innerHTML = data.message || `Processing Complete`;
+                    statusElement.className = data.status === "success" ? 
+                        "result-item correct" : "result-item incorrect";
+    
+                    // Use the correct field names from the backend response
+                    expectedElement.innerHTML = `Expected: ${data.expected_text}`;
+                    expectedElement.className = "result-item";
+    
+                    spokenElement.innerHTML = `Spoken: ${data.spoken_text}`;
+                    spokenElement.className = 
+                        data.status === "success" ? "result-item correct" : "result-item incorrect";
+    
+                    if (data.audio_url) {
+                        // Create a new Audio element to ensure better browser compatibility
+                        let audioPlayer = document.getElementById("audio-player");
+                        audioPlayer.src = data.audio_url;
+                        audioPlayer.style.display = "block";
+                        audioPlayer.controls = true;  // Always show controls
+                        
+                        // Try to play automatically but prepare for failure due to browser policies
+                        const playPromise = audioPlayer.play();
+                        
+                        if (playPromise !== undefined) {
+                            playPromise.then(_ => {
+                                // Automatic playback started successfully
+                                console.log("Audio playback started successfully");
+                            }).catch(error => {
+                                console.warn("Autoplay was prevented:", error);
+                                // Show a play button or message to the user
+                                let audioMessage = document.createElement("div");
+                                audioMessage.className = "audio-message";
+                                audioMessage.innerHTML = "⚠️ Click the audio player to listen";
+                                audioPlayer.parentNode.insertBefore(audioMessage, audioPlayer.nextSibling);
+                            });
+                        }
+                    }
+                    
+                    // Display meaning from recognition response if available
+                    if (data.meaning) {
+                        meaningSection.innerHTML = `<div class="meaning-definition">${data.meaning}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error("Speech recognition error:", error);
+                    
+                    loadingSection.style.display = "none";
+                    
+                    let statusElement = document.getElementById("status");
+                    statusElement.innerHTML = `Error: ${error.message}`;
+                    statusElement.className = "result-item incorrect";
+                });
+            
+            // Fetch detailed word information with WordNet meanings
+            fetch(`/get-word-details/${encodeURIComponent(word)}/?language=${selectedLanguage}`)
+                .then(response => response.json())
+                .then(data => {
+                    let meaningContent = "";
+                    
+                    if (data.meanings && data.meanings.length > 0) {
+                        // Process structured meanings from WordNet
+                        data.meanings.forEach(meaning => {
+                            if (meaning.pos) {
+                                // Standard meaning entry
+                                meaningContent += `<div class="meaning-pos">${meaning.pos}</div>`;
+                                meaningContent += `<div class="meaning-definition">${meaning.definition}</div>`;
+                                
+                                if (meaning.examples && meaning.examples.length > 0) {
+                                    meaningContent += `<div class="meaning-examples">Example: ${meaning.examples[0]}</div>`;
+                                }
+                            } else if (meaning.word_parts) {
+                                // Individual word parts for phrases
+                                meaningContent += `<div class="meaning-pos">Phrase components:</div>`;
+                                for (const [partWord, partDetails] of Object.entries(meaning.word_parts)) {
+                                    meaningContent += `<div class="meaning-definition"><b>${partWord}</b>: ${partDetails.definition} (${partDetails.pos})</div>`;
+                                }
+                            } else if (typeof meaning === 'string') {
+                                // Simple string meaning
+                                meaningContent += `<div class="meaning-definition">${meaning}</div>`;
+                            }
+                        });
+                    } else {
+                        meaningContent = "No definition found.";
+                    }
+                    
+                    // Display word metadata if available
+                    if (data.pronunciation_hints) {
+                        meaningContent += `<div class="meaning-pos">Pronunciation hints:</div>`;
+                        meaningContent += `<div class="meaning-definition">${data.pronunciation_hints}</div>`;
+                    }
+                    
+                    meaningSection.innerHTML = meaningContent;
+                })
+                .catch(error => {
+                    console.error("Error fetching word details:", error);
+                    meaningSection.innerHTML = "Error fetching meaning information.";
                 });
         }
         
         function clearResults() {
-            // Clear all result fields
-            document.getElementById("status").innerText = "";
-            document.getElementById("expected").innerText = "";
-            document.getElementById("spoken").innerText = "";
+            let resultsContainer = document.getElementById("results-container");
+            let statusElement = document.getElementById("status");
+            let expectedElement = document.getElementById("expected");
+            let spokenElement = document.getElementById("spoken");
+            let audioPlayer = document.getElementById("audio-player");
+            let meaningElement = document.getElementById("word-meaning");
             
-            // Hide the audio player
-            document.getElementById("audio-player").style.display = "none";
+            statusElement.innerText = "";
+            expectedElement.innerText = "";
+            spokenElement.innerText = "";
+            meaningElement.innerHTML = "Loading meaning...";
+            
+            statusElement.className = "result-item";
+            expectedElement.className = "result-item";
+            spokenElement.className = "result-item";
+            
+            audioPlayer.style.display = "none";
+            audioPlayer.src = "";
         }
         
         function showWordList() {
-            // Hide the results container
             document.getElementById("results-container").style.display = "none";
-            
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     </script>

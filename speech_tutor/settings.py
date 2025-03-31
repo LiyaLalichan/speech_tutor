@@ -144,3 +144,5 @@ LOGIN_URL = 'accounts/login/'  # URL for login if not authenticated
 LOGOUT_URL = 'accounts/logout/'  # URL for logout
 LOGIN_REDIRECT_URL = '/speech_processing/practice/'  # Where to redirect after successful login
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # Where to redirect after logout
+
+
