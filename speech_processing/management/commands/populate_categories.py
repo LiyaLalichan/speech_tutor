@@ -80,3 +80,44 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING(f'Word already exists: {word.text} ({lang_name})'))
 
         self.stdout.write(self.style.SUCCESS('✅ Database population completed successfully'))
+from speech_processing.models import ExpectedSpeech, Language, Category
+
+# Get the French language instance
+french = Language.objects.get(code='fr')
+
+# (Optional) Get or create a category to assign to the words
+category, _ = Category.objects.get_or_create(name='Common Words', language=french)
+
+# Dictionary of English words with French translations
+french_words = {
+    "when": "quand",
+    "where": "où",
+    "how": "comment",
+    "police": "police",
+    "bus station": "gare routière",
+    "taxi": "taxi",
+    "water": "eau",
+    "hotel": "hôtel",
+    "sandwich": "sandwich",
+    "petrol": "essence",
+    "church": "église",
+    "library": "bibliothèque",
+    "school": "école",
+    "park": "parc",
+    "office": "bureau",
+    "party": "fête",
+    "weekend": "week-end",
+    "dress": "robe",
+    "basket": "panier"
+}
+
+# Insert new ExpectedSpeech records
+for english_word, french_word in french_words.items():
+    ExpectedSpeech.objects.create(
+        text=french_word,                # French goes to 'text'
+        translation=english_word,        # English goes to 'translation'
+        language=french,
+        category=category
+    )
+
+print("New words with French translations added.")

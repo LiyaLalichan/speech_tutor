@@ -1,41 +1,37 @@
-
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.views.decorators.http import require_GET
-<<<<<<< HEAD
+
 import hashlib
 from .models import Language 
 import speech_recognition as sr
 import pronouncing
 from gtts import gTTS
 from urllib.parse import unquote, unquote_plus
-from googletrans import Translator  # You'll need to install this package
+from googletrans import Translator, LANGUAGES  # Import LANGUAGES dictionary
 import nltk
 from nltk.corpus import wordnet
 
-=======
-
-import speech_recognition as sr
-import pronouncing
-from gtts import gTTS
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
 import os
 import logging
 import uuid
+import time
 
 from .models import ExpectedSpeech, Category, Language, SpeechRecord
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-<<<<<<< HEAD
 def get_word_meaning(request):
-    """Fetch word meaning from WordNet with language support and return translated word"""
+    """Fetch simplified word meaning from WordNet with language support and return translated word"""
     text = request.GET.get('text', '').strip()
     language_code = request.GET.get('language', 'en').lower()
     original_text = text  # Store the original text
+    
+    # Normalize language code for googletrans
+    lang_code_normalized = normalize_language_code(language_code, 'googletrans')
     
     # Ensure NLTK data is downloaded
     try:
@@ -49,9 +45,19 @@ def get_word_meaning(request):
         if language_code != 'en':  
             try:
                 translator = Translator()
-                translation = translator.translate(text, src=language_code, dest='en')
-                translated_text = translation.text
-                logger.info(f"Translated '{text}' from {language_code} to English: {translated_text}")
+                # Add a retry mechanism for translation services
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        translation = translator.translate(text, src=lang_code_normalized, dest='en')
+                        translated_text = translation.text
+                        logger.info(f"Translated '{text}' from {language_code} to English: {translated_text}")
+                        break
+                    except Exception as e:
+                        if attempt < max_retries - 1:
+                            time.sleep(1)  # Wait before retrying
+                            continue
+                        raise e
             except Exception as e:
                 logger.error(f"Translation error for '{text}': {e}")
                 return JsonResponse({
@@ -62,14 +68,20 @@ def get_word_meaning(request):
                     "language": language_code,
                     "translated": False,
                     "error": str(e)
-                }, status=500)
+                })
         
         # Step 2: Get the meaning of the word (after translation if necessary)
         synonyms = wordnet.synsets(translated_text.lower())  # Use lower() to handle case insensitivity
         
         if synonyms:
+            # Get just the first definition and example for simplicity
             meaning = synonyms[0].definition()
-            examples = synonyms[0].examples()
+            examples = [synonyms[0].examples()[0]] if synonyms[0].examples() else []
+            pos = synonyms[0].pos()
+            
+            # Convert part of speech code to full name
+            pos_dict = {'n': 'Noun', 'v': 'Verb', 'a': 'Adjective', 's': 'Adjective', 'r': 'Adverb'}
+            part_of_speech = pos_dict.get(pos, '')
             
             # Step 3: For non-English languages, translate the meaning back to original language
             translated_meaning = meaning
@@ -78,27 +90,39 @@ def get_word_meaning(request):
             if language_code != 'en':
                 try:
                     translator = Translator()
-                    meaning_translation = translator.translate(meaning, src='en', dest=language_code)
-                    translated_meaning = meaning_translation.text
-                    
-                    translated_examples = []
-                    for example in examples:
-                        example_translation = translator.translate(example, src='en', dest=language_code)
-                        translated_examples.append(example_translation.text)
+                    # Add a retry mechanism for translation services
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            meaning_translation = translator.translate(meaning, src='en', dest=lang_code_normalized)
+                            translated_meaning = meaning_translation.text
+                            
+                            translated_examples = []
+                            for example in examples:
+                                example_translation = translator.translate(example, src='en', dest=lang_code_normalized)
+                                translated_examples.append(example_translation.text)
+                            break
+                        except Exception as e:
+                            if attempt < max_retries - 1:
+                                time.sleep(1)  # Wait before retrying
+                                continue
+                            raise e
                 except Exception as e:
                     logger.error(f"Meaning translation error: {e}")
                     # Keep original English meaning if translation fails
-                    translated_meaning = meaning + " (translation failed)"
+                    translated_meaning = meaning
                     translated_examples = examples
             
+            # Create a simplified response with only one meaning and example
             return JsonResponse({
                 "original_word": original_text,
                 "translated_word": translated_text if language_code != 'en' else original_text,
                 "meaning": translated_meaning,
-                "examples": translated_examples if translated_examples else [],
-                "original_meaning": meaning,  # Include original English meaning
+                "part_of_speech": part_of_speech,
+                "examples": translated_examples[:1],  # Just take the first example
                 "language": language_code,
-                "translated": language_code != 'en'
+                "translated": language_code != 'en',
+                "english_meaning": meaning  # Include the English meaning for non-English words
             })
         else:
             # No meaning found in WordNet
@@ -108,7 +132,7 @@ def get_word_meaning(request):
             if language_code != 'en':
                 try:
                     translator = Translator()
-                    translation = translator.translate(no_meaning_message, src='en', dest=language_code)
+                    translation = translator.translate(no_meaning_message, src='en', dest=lang_code_normalized)
                     no_meaning_message = translation.text
                 except:
                     pass  # Keep English message if translation fails
@@ -129,6 +153,72 @@ def get_word_meaning(request):
             "details": str(e)
         }, status=500)
     
+def normalize_language_code(code, target_library='googletrans'):
+    """
+    Normalize language codes between different libraries
+    - googletrans: uses ISO 639-1 (2-letter) codes like 'en', 'es', 'fr'
+    - gTTS: mostly uses ISO 639-1 but has special cases like 'zh-CN'
+    - speech_recognition: uses BCP-47 like 'en-US', 'es-ES'
+    """
+    # Strip region code if present (e.g., 'en-US' -> 'en')
+    base_code = code.split('-')[0].lower() if '-' in code else code.lower()
+    
+    # Special case mappings
+    special_cases = {
+        'googletrans': {
+            'zh-cn': 'zh-CN',
+            'zh-tw': 'zh-TW',
+            'zh': 'zh-CN',  # Default Chinese to Simplified
+        },
+        'gtts': {
+            'zh-cn': 'zh-CN',
+            'zh-tw': 'zh-TW',
+            'zh': 'zh-CN',  # Default Chinese to Simplified
+        },
+        'speech_recognition': {
+            'en': 'en-US',
+            'es': 'es-ES',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'zh': 'zh-CN',
+            'zh-cn': 'zh-CN',
+            'zh-tw': 'zh-TW',
+            'ja': 'ja-JP',
+        }
+    }
+    
+    # Check if the code is in special cases for the target library
+    if target_library in special_cases and code in special_cases[target_library]:
+        return special_cases[target_library][code]
+    
+    # For googletrans, ensure the code is in their supported languages
+    if target_library == 'googletrans':
+        if base_code in LANGUAGES:
+            return base_code
+        else:
+            # Default to English if not supported
+            logger.warning(f"Language code '{code}' not supported by googletrans, using 'en'")
+            return 'en'
+    
+    # For gTTS, return the code as is (it handles most codes correctly)
+    if target_library == 'gtts':
+        return code
+    
+    # For speech recognition, add region code if missing
+    if target_library == 'speech_recognition':
+        if '-' not in code:
+            # Try to find in special cases first
+            if code in special_cases['speech_recognition']:
+                return special_cases['speech_recognition'][code]
+            # Otherwise, default to adding US region for English or same region for others
+            if code == 'en':
+                return 'en-US'
+            else:
+                # Make an educated guess - use uppercase of the same code as region
+                return f"{code}-{code.upper()}"
+    
+    # If no specific handling, return the original code
+    return code
 
 def get_language_name(language_code):
     """Helper function to get language name from code"""
@@ -137,14 +227,19 @@ def get_language_name(language_code):
         'es': 'Spanish',
         'fr': 'French',
         'de': 'German',
-        'zh-cn': 'Chinese',
+        'zh-cn': 'Chinese (Simplified)',
+        'zh-tw': 'Chinese (Traditional)',
         'ja': 'Japanese',
+        'ru': 'Russian',
+        'ar': 'Arabic',
+        'hi': 'Hindi',
+        'pt': 'Portuguese',
+        'it': 'Italian',
+        'ko': 'Korean',
         # Add more languages as needed
     }
     return language_names.get(language_code, language_code)
 
-=======
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
 @login_required
 def practice_words(request):
     """
@@ -174,12 +269,7 @@ def practice_words(request):
         'current_language': selected_language
     })
 
-<<<<<<< HEAD
-
-
-logger = logging.getLogger(__name__)
 @login_required
-
 def generate_audio(request):
     """
     Generate text-to-speech (TTS) audio for a word in multiple languages.
@@ -192,26 +282,29 @@ def generate_audio(request):
         logger.warning("No text provided for TTS generation.")
         return JsonResponse({"error": "No text provided"}, status=400)
 
-    # Ensure the language format is correct for gTTS
-    supported_languages = ["en", "fr", "hi", "es", "de", "zh-cn", "zh-tw"]
+    # Normalize language code for gTTS
+    gtts_lang = normalize_language_code(language_code, 'gtts')
     
-    if language_code not in supported_languages:
+    # Get list of gTTS supported languages
+    try:
+        from gtts.lang import tts_langs
+        supported_languages = tts_langs()
+    except:
+        # Fallback list if dynamic retrieval fails
+        supported_languages = {
+            "en", "fr", "es", "de", "it", "ja", "ko", "pt", "ru", "zh-CN", "zh-TW", "ar", "hi"
+        }
+    
+    if gtts_lang not in supported_languages and language_code not in supported_languages:
         logger.warning(f"Unsupported language '{language_code}', defaulting to English.")
-        language_code = "en"
-
-    # Define correct language mapping for gTTS
-    lang_map = {
-        "zh-cn": "zh-CN",
-        "zh-tw": "zh-TW",
-    }
-    lang = lang_map.get(language_code, language_code)  # Use mapped language if available
+        gtts_lang = "en"
 
     # Create a directory for the language
     audio_dir = os.path.join(settings.BASE_DIR, "static", "audio", language_code)
     os.makedirs(audio_dir, exist_ok=True)
 
-    # Generate a unique filename using a hash
-    text_hash = hashlib.md5(text.encode("utf-8")).hexdigest()[:10]
+    # Generate a unique filename using a hash to avoid encoding issues
+    text_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
     audio_filename = f"{text_hash}_{language_code}.mp3"
     audio_path = os.path.join(audio_dir, audio_filename)
     audio_url = f"{settings.STATIC_URL}audio/{language_code}/{audio_filename}"
@@ -219,12 +312,40 @@ def generate_audio(request):
     # Generate new audio if it does not exist
     if not os.path.exists(audio_path):
         try:
-            logger.info(f"Generating TTS for '{text}' in '{language_code}'")
-            tts = gTTS(text=text, lang=lang)
+            logger.info(f"Generating TTS for '{text}' in '{language_code}' (gTTS format: {gtts_lang})")
+            
+            # Use slow=False for normal speaking rate
+            tts = gTTS(text=text, lang=gtts_lang, slow=False)
             tts.save(audio_path)
             logger.info(f"Saved TTS file at {audio_path}")
         except Exception as e:
             logger.error(f"TTS generation failed for '{text}' in '{language_code}': {e}")
+            
+            # Try fallback to English if original language fails
+            if language_code != 'en':
+                try:
+                    logger.info(f"Attempting English fallback for '{text}'")
+                    fallback_dir = os.path.join(settings.BASE_DIR, "static", "audio", "en")
+                    os.makedirs(fallback_dir, exist_ok=True)
+                    
+                    fallback_filename = f"{text_hash}_en.mp3"
+                    fallback_path = os.path.join(fallback_dir, fallback_filename)
+                    fallback_url = f"{settings.STATIC_URL}audio/en/{fallback_filename}"
+                    
+                    tts = gTTS(text=text, lang='en')
+                    tts.save(fallback_path)
+                    
+                    return JsonResponse({
+                        "audio_url": fallback_url, 
+                        "text": text, 
+                        "language": "en",
+                        "original_language": language_code,
+                        "fallback": True
+                    })
+                    
+                except Exception as inner_e:
+                    logger.error(f"English fallback TTS also failed: {inner_e}")
+                    
             return JsonResponse({"error": "Failed to generate audio"}, status=500)
 
     return JsonResponse({"audio_url": audio_url, "text": text, "language": language_code})
@@ -236,65 +357,97 @@ def recognize_word(request, text):
     """
     text = unquote_plus(text).strip()  # Correctly decode URL-encoded spaces and characters
     language_code = request.GET.get('language', 'en-US').lower()
+    
+    # Normalize language code for speech recognition
+    sr_lang = normalize_language_code(language_code, 'speech_recognition')
 
     request_id = str(uuid.uuid4())
 
-    logger.info(f"[{request_id}] Speech Recognition Started - Text: {text}, Language: {language_code}")
+    logger.info(f"[{request_id}] Speech Recognition Started - Text: {text}, Language: {language_code}, SR Format: {sr_lang}")
 
-=======
-@login_required
-def recognize_word(request, word):
-    """
-    Advanced speech recognition with detailed error handling and logging
-    """
-    language_code = request.GET.get('language', 'en-US')
-    request_id = str(uuid.uuid4())  # Unique identifier for tracking
-    
-    logger.info(f"[{request_id}] Speech Recognition Started - Word: {word}, Language: {language_code}")
-    
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
     recognizer = sr.Recognizer()
     recognizer.dynamic_energy_threshold = True
-    recognizer.pause_threshold = 0.5
+    recognizer.pause_threshold = 0.8  # Slightly increased for non-English speakers
 
     try:
-<<<<<<< HEAD
         with sr.Microphone() as source:
             recognizer.adjust_for_ambient_noise(source, duration=1)
             logger.info(f"[{request_id}] Listening for text: {text}")
             audio = recognizer.listen(source, timeout=10, phrase_time_limit=5)
 
-        spoken_text = recognizer.recognize_google(audio, language=language_code).strip().lower()
-        logger.info(f"[{request_id}] Recognized Speech: {spoken_text}")
+        # Try to recognize using Google's service
+        try:
+            spoken_text = recognizer.recognize_google(audio, language=sr_lang).strip().lower()
+            logger.info(f"[{request_id}] Recognized Speech: {spoken_text}")
+        except sr.UnknownValueError:
+            # If recognition fails, retry with different language format
+            alt_lang = language_code.split('-')[0] if '-' in language_code else language_code
+            try:
+                spoken_text = recognizer.recognize_google(audio, language=alt_lang).strip().lower()
+                logger.info(f"[{request_id}] Recognized Speech with alternate format: {spoken_text}")
+            except:
+                raise sr.UnknownValueError("Speech could not be recognized in any format")
 
         language = Language.objects.filter(code=language_code).first()
+        if not language and '-' in language_code:
+            # Try to find language with base code
+            language = Language.objects.filter(code=language_code.split('-')[0]).first()
+            
         expected_speech = ExpectedSpeech.objects.filter(text__iexact=text, language=language).first()
 
-        audio_url = generate_tts_audio(text, language_code)
-        meaning = get_word_meaning(text)  
+        # Generate audio URL
+        audio_response = generate_audio(request._request if hasattr(request, '_request') else request)
+        audio_data = {}
+        if hasattr(audio_response, 'content'):
+            import json
+            audio_data = json.loads(audio_response.content)
+        audio_url = audio_data.get('audio_url', '')
+
+        # Get word meaning
+        meaning = "Meaning retrieval not available"
+        try:
+            # Create a mock request object with the necessary parameters
+            from types import SimpleNamespace
+            mock_request = SimpleNamespace()
+            mock_request.GET = SimpleNamespace()
+            mock_request.GET.get = lambda key, default: text if key == 'text' else language_code if key == 'language' else default
+            
+            meaning_response = get_word_meaning(mock_request)
+            if hasattr(meaning_response, 'content'):
+                import json
+                meaning_data = json.loads(meaning_response.content)
+                meaning = meaning_data.get('meaning', 'No meaning available')
+        except Exception as e:
+            logger.error(f"[{request_id}] Failed to get word meaning: {e}")
+            meaning = "Error retrieving meaning"
+
+        # Calculate similarity
+        similarity = calculate_similarity(text, spoken_text)
 
         response_data = {
             "expected_text": text,
             "spoken_text": spoken_text,
             "audio_url": audio_url,
             "language": language_code,
-            "similarity_score": calculate_similarity(text, spoken_text),
+            "similarity_score": similarity,
             "meaning": meaning
         }
 
-        if spoken_text == text.lower():
+        # Determine success based on similarity threshold (more lenient for non-English)
+        threshold = 75 if language_code.startswith('en') else 65
+        if similarity >= threshold:
             response_data.update({
-                "message": f"✅ Correct pronunciation in {language_code}!",
+                "message": f"✅ Good pronunciation in {get_language_name(language_code)}!",
                 "status": "success",
-                "accuracy": 100
+                "accuracy": similarity
             })
-            if expected_speech:
-                SpeechRecord.create_record(text=spoken_text, expected_speech=expected_speech, language=expected_speech.language)
+            if expected_speech and language:
+                SpeechRecord.create_record(text=spoken_text, expected_speech=expected_speech, language=language)
         else:
             response_data.update({
                 "message": f"❌ Expected: {text}, You said: {spoken_text}",
                 "status": "error",
-                "accuracy": response_data['similarity_score']
+                "accuracy": similarity
             })
 
         logger.info(f"[{request_id}] Recognition Completed - Status: {response_data['status']}")
@@ -302,10 +455,10 @@ def recognize_word(request, word):
 
     except sr.UnknownValueError:
         return JsonResponse({"message": "❌ Could not understand speech.", "status": "error", "language": language_code}, status=400)
-    except sr.RequestError:
-        return JsonResponse({"message": "⚠️ Speech recognition service unavailable.", "status": "error", "language": language_code}, status=503)
-    except OSError:
-        return JsonResponse({"message": "⚠️ Microphone not detected or unavailable.", "status": "error", "language": language_code}, status=500)
+    except sr.RequestError as e:
+        return JsonResponse({"message": f"⚠️ Speech recognition service unavailable: {str(e)}", "status": "error", "language": language_code}, status=503)
+    except OSError as e:
+        return JsonResponse({"message": f"⚠️ Microphone not detected or unavailable: {str(e)}", "status": "error", "language": language_code}, status=500)
     except Exception as e:
         logger.critical(f"[{request_id}] Unexpected error: {e}", exc_info=True)
         return JsonResponse({"message": f"❌ An unexpected error occurred: {str(e)}", "status": "error", "language": language_code}, status=500)
@@ -316,14 +469,16 @@ def generate_tts_audio(text, language_code='en'):
     Returns the URL path to the audio file
     """
     try:
+        # Normalize language code for gTTS
+        gtts_lang = normalize_language_code(language_code, 'gtts')
+        
         # Ensure audio directory exists
         audio_dir = os.path.join(settings.BASE_DIR, "static", "audio", language_code)
         os.makedirs(audio_dir, exist_ok=True)
 
-        # Create safe filename - handle special characters that might appear in non-English text
-        safe_text = ''.join(e if e.isalnum() else '_' for e in text)
-        safe_text = safe_text[:50]  # Limit filename length
-        audio_filename = f"{safe_text}_{language_code}.mp3"
+        # Create hash-based filename instead of using the text directly
+        text_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+        audio_filename = f"{text_hash}_{language_code}.mp3"
         audio_path = os.path.join(audio_dir, audio_filename)
         audio_url = f"/static/audio/{language_code}/{audio_filename}"
 
@@ -331,18 +486,12 @@ def generate_tts_audio(text, language_code='en'):
         if not os.path.exists(audio_path):
             # Primary TTS generation attempt
             try:
-                # For some languages, gTTS needs specific handling
-                if language_code in ['zh-cn', 'zh-tw']:
-                    # Handle Chinese variants explicitly
-                    lang = 'zh-CN' if language_code == 'zh-cn' else 'zh-TW'
-                    tts = gTTS(text, lang=lang)
-                else:
-                    # Standard language code handling
-                    tts = gTTS(text, lang=language_code)
+                # Use the normalized language code for gTTS
+                tts = gTTS(text=text, lang=gtts_lang, slow=False)
                 
                 # Save the audio file
                 tts.save(audio_path)
-                logger.info(f"Generated audio for '{text}' in {language_code}")
+                logger.info(f"Generated audio for '{text}' in {language_code} (gTTS format: {gtts_lang})")
                 
             except Exception as e:
                 logger.warning(f"TTS Error for {language_code}: {e}. Falling back to English.")
@@ -351,12 +500,12 @@ def generate_tts_audio(text, language_code='en'):
                 en_audio_dir = os.path.join(settings.BASE_DIR, "static", "audio", "en")
                 os.makedirs(en_audio_dir, exist_ok=True)
                 
-                en_audio_filename = f"{safe_text}_en.mp3"
+                en_audio_filename = f"{text_hash}_en.mp3"
                 en_audio_path = os.path.join(en_audio_dir, en_audio_filename)
                 audio_url = f"/static/audio/en/{en_audio_filename}"
                 
                 # Generate English version
-                tts = gTTS(text, lang='en')
+                tts = gTTS(text=text, lang='en')
                 tts.save(en_audio_path)
                 logger.info(f"Generated fallback English audio for '{text}'")
 
@@ -365,140 +514,13 @@ def generate_tts_audio(text, language_code='en'):
     except Exception as e:
         logger.error(f"Failed to generate audio: {e}")
         return None
-def calculate_similarity(expected, spoken):
-    """
-    Calculate pronunciation similarity using Levenshtein distance
-    """
-    from difflib import SequenceMatcher
-    
-=======
-        # Attempt to get microphone input
-        with sr.Microphone() as source:
-            recognizer.adjust_for_ambient_noise(source, duration=1)
-            
-            logger.info(f"[{request_id}] Listening for word: {word}")
-            audio = recognizer.listen(source, timeout=5, phrase_time_limit=3)
-
-        try:
-            # Perform speech recognition
-            spoken_text = recognizer.recognize_google(
-                audio, 
-                language=language_code,
-                show_all=False
-            ).strip().lower()
-            
-            logger.info(f"[{request_id}] Recognized Speech: {spoken_text}")
-
-            # Retrieve language and expected speech
-            try:
-                language = Language.objects.get(code=language_code)
-                expected_speech = ExpectedSpeech.objects.filter(
-                    word__iexact=word, 
-                    language=language
-                ).first()
-            except (Language.DoesNotExist, ExpectedSpeech.DoesNotExist):
-                logger.warning(f"[{request_id}] Language or Expected Speech not found")
-                expected_speech = None
-
-            # Generate audio for playback
-            audio_url = generate_audio(word, language_code)
-
-            # Prepare response data
-            response_data = {
-                "expected_word": word,
-                "spoken_word": spoken_text,
-                "audio_url": audio_url,
-                "language": language_code,
-                "similarity_score": calculate_similarity(word, spoken_text)
-            }
-
-            # Check pronunciation accuracy
-            if spoken_text == word.lower():
-                response_data.update({
-                    "message": f"✅ Correct pronunciation in {language_code}!",
-                    "status": "success",
-                    "accuracy": 100
-                })
-                
-                # Create speech record if expected speech exists
-                if expected_speech:
-                    SpeechRecord.create_record(
-                        text=spoken_text, 
-                        expected_speech=expected_speech, 
-                        language=expected_speech.language
-                    )
-            else:
-                response_data.update({
-                    "message": f"❌ Expected: {word}, You said: {spoken_text}",
-                    "status": "error",
-                    "accuracy": response_data['similarity_score']
-                })
-
-            logger.info(f"[{request_id}] Recognition Completed - Status: {response_data['status']}")
-            return JsonResponse(response_data)
-
-        except sr.UnknownValueError:
-            logger.warning(f"[{request_id}] Speech not understood")
-            return JsonResponse({
-                "message": "❌ Could not understand speech. Please try again.",
-                "status": "error",
-                "language": language_code
-            }, status=400)
-        
-        except sr.RequestError as e:
-            logger.error(f"[{request_id}] Speech recognition service error: {e}")
-            return JsonResponse({
-                "message": "⚠️ Speech recognition service unavailable.",
-                "status": "error",
-                "language": language_code
-            }, status=503)
-
-    except Exception as e:
-        logger.critical(f"[{request_id}] Unexpected error: {e}", exc_info=True)
-        return JsonResponse({
-            "message": f"❌ An unexpected error occurred: {str(e)}",
-            "status": "error",
-            "language": language_code
-        }, status=500)
-
-def generate_audio(word, language_code='en'):
-    """
-    Generate text-to-speech audio with fallback mechanism
-    """
-    try:
-        language = Language.objects.get(code=language_code)
-    except Language.DoesNotExist:
-        language = Language.get_default_language()
-        language_code = 'en'
-
-    # Ensure audio directory exists
-    audio_dir = os.path.join(settings.BASE_DIR, "static", "audio", language_code)
-    os.makedirs(audio_dir, exist_ok=True)
-
-    # Create safe filename
-    safe_word = ''.join(e for e in word if e.isalnum())
-    audio_filename = f"{safe_word}_{language_code}.mp3"
-    audio_path = os.path.join(audio_dir, audio_filename)
-
-    # Fallback TTS generation
-    try:
-        tts = gTTS(word, lang=language_code)
-        tts.save(audio_path)
-    except Exception as e:
-        logger.warning(f"TTS Error for {language_code}: {e}. Falling back to English.")
-        tts = gTTS(word, lang='en')
-        audio_path = os.path.join(audio_dir, f"{safe_word}_en.mp3")
-        tts.save(audio_path)
-
-    return f"/static/audio/{language_code}/{audio_filename}"
 
 def calculate_similarity(expected, spoken):
     """
-    Calculate pronunciation similarity using Levenshtein distance
+    Calculate pronunciation similarity using SequenceMatcher
     """
     from difflib import SequenceMatcher
     
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
     # Normalize inputs
     expected = expected.lower().strip()
     spoken = spoken.lower().strip()
@@ -507,8 +529,6 @@ def calculate_similarity(expected, spoken):
     similarity = SequenceMatcher(None, expected, spoken).ratio()
     return round(similarity * 100, 2)
 
-
-<<<<<<< HEAD
 def get_word_details(request, text):
     """
     Retrieve detailed information about a specific word, including meaning from WordNet.
@@ -516,41 +536,36 @@ def get_word_details(request, text):
     text = unquote(text).strip().lower()  # Decode Unicode & convert to lowercase
     language_code = request.GET.get('language', 'en')
     
-    # Ensure NLTK data is downloaded
-    try:
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        nltk.download('wordnet')
-        
+    # Normalize language code for googletrans
+    lang_code_normalized = normalize_language_code(language_code, 'googletrans')
+    
     try:
         word_details = ExpectedSpeech.objects.filter(
             text__iexact=text, 
             language__code=language_code
         ).first()
         
-        # For non-English languages, translate to English first for WordNet lookup
-        lookup_text = text
-        original_translation = None
+        # Get meanings in English first (NLTK WordNet only supports English)
+        synsets = wordnet.synsets(text)
+        meanings = []
         
-        if language_code.lower() != "en":
+        # If not in English and no synsets found, try translating to English first
+        if not synsets and language_code != 'en':
             try:
                 translator = Translator()
-                translation = translator.translate(text, src=language_code, dest='en')
-                lookup_text = translation.text.lower()
-                original_translation = {
-                    'from': text,
-                    'to': lookup_text,
-                    'language_from': language_code,
-                    'language_to': 'en'
-                }
-                logger.info(f"Translated for lookup: '{text}' -> '{lookup_text}'")
+                translation = translator.translate(text, src=lang_code_normalized, dest='en')
+                english_text = translation.text.lower()
+                synsets = wordnet.synsets(english_text)
+                
+                # If we found meanings after translation, note this
+                if synsets:
+                    logger.info(f"Found meanings for '{text}' after translating to '{english_text}'")
+                    meanings.append({
+                        "note": f"Meanings for translation: '{english_text}'",
+                        "pos": "Info"
+                    })
             except Exception as e:
-                logger.error(f"Translation for lookup failed: {e}")
-                # Continue with original text as fallback
-        
-        # Get meanings in English first (NLTK WordNet only supports English)
-        synsets = wordnet.synsets(lookup_text)
-        meanings = []
+                logger.error(f"Translation error before WordNet lookup: {e}")
         
         if synsets:
             pos_dict = {'n': 'Noun', 'v': 'Verb', 'a': 'Adjective', 's': 'Adjective', 'r': 'Adverb'}
@@ -563,58 +578,66 @@ def get_word_details(request, text):
         else:
             meanings.append({"definition": "❌ Meaning not found in dictionary."})
         
-        # For non-English languages, translate the meanings back to the target language
-        if language_code.lower() != "en" and meanings and meanings[0].get("definition") != "❌ Meaning not found in dictionary.":
+        # For non-English languages, translate the meanings
+        if language_code.lower() != "en" and meanings and 'definition' in meanings[0] and meanings[0]["definition"] != "❌ Meaning not found in dictionary.":
             try:
                 translator = Translator()
                 translated_meanings = []
                 
-                # Map language codes to googletrans format if needed
-                target_lang = language_code.lower()
-                if len(target_lang) > 2:  # If it's a longer code like 'eng', 'fra', etc.
-                    lang_map = {'eng': 'en', 'fra': 'fr', 'hin': 'hi', 'spa': 'es', 'deu': 'de'}
-                    target_lang = lang_map.get(target_lang, target_lang[:2])
-                
+                # Add retry mechanism
+                max_retries = 3
                 for meaning in meanings:
-                    # Keep track of original English definition
-                    original_definition = meaning.get('definition', '')
-                    
-                    # Translate definition
-                    translated_def = translator.translate(
-                        original_definition, 
-                        src='en', 
-                        dest=target_lang
-                    ).text
-                    
-                    # Translate examples if any
-                    translated_examples = []
-                    original_examples = meaning.get('examples', [])
-                    
-                    for example in original_examples:
-                        translated_example = translator.translate(
-                            example, 
-                            src='en', 
-                            dest=target_lang
-                        ).text
-                        translated_examples.append(translated_example)
-                    
-                    translated_meanings.append({
-                        'definition': translated_def,
-                        'original_definition': original_definition,  # Keep original for reference
-                        'pos': meaning.get('pos', ''),  # Keep part of speech in English
-                        'examples': translated_examples,
-                        'original_examples': original_examples  # Keep original examples
-                    })
+                    # Skip notes
+                    if 'note' in meaning:
+                        translated_meanings.append(meaning)
+                        continue
+                        
+                    for attempt in range(max_retries):
+                        try:
+                            # Translate definition
+                            translated_def = translator.translate(
+                                meaning['definition'], 
+                                src='en', 
+                                dest=lang_code_normalized
+                            ).text
+                            
+                            # Translate examples if any
+                            translated_examples = []
+                            for example in meaning.get('examples', []):
+                                translated_example = translator.translate(
+                                    example, 
+                                    src='en', 
+                                    dest=lang_code_normalized
+                                ).text
+                                translated_examples.append(translated_example)
+                            
+                            translated_meanings.append({
+                                'definition': translated_def,
+                                'pos': meaning.get('pos', ''),  # Keep part of speech in English
+                                'examples': translated_examples
+                            })
+                            break  # Break retry loop on success
+                        except Exception as e:
+                            if attempt < max_retries - 1:
+                                time.sleep(1)  # Wait before retrying
+                                continue
+                            logger.error(f"Translation error on attempt {attempt+1}: {e}")
+                            # On final attempt failure, add the English version
+                            translated_meanings.append(meaning)
+                            translated_meanings.append({
+                                "definition": f"⚠️ Translation to {language_code} failed.",
+                                "pos": "Note"
+                            })
                 
-                # Replace English meanings with translated ones
-                meanings = translated_meanings
+                # Replace English meanings with translated ones if we have translations
+                if translated_meanings:
+                    meanings = translated_meanings
             except Exception as e:
                 logger.error(f"Translation error for {text} in {language_code}: {e}")
                 # Add a note about translation failure but keep English meanings
                 meanings.append({
                     "definition": f"⚠️ Translation to {language_code} failed. Showing English meanings.",
-                    "pos": "Note",
-                    "error": str(e)
+                    "pos": "Note"
                 })
         
         response_data = {
@@ -623,51 +646,15 @@ def get_word_details(request, text):
             'meanings': meanings
         }
         
-        if original_translation:
-            response_data['translation_info'] = original_translation
-            
         if word_details:
             response_data.update({
-=======
-def get_word_details(request, word):
-    """
-    Retrieve detailed information about a specific word
-    """
-    language_code = request.GET.get('language', 'en')
-    
-    try:
-        word_details = ExpectedSpeech.objects.filter(
-            word__iexact=word, 
-            language__code=language_code
-        ).first()
-        
-        if word_details:
-            return JsonResponse({
-                'word': word_details.word,
-                'language': word_details.language.code,
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
                 'category': word_details.category.name if word_details.category else None,
                 'pronunciation_hints': word_details.pronunciation_hints or '',
                 'difficulty_level': word_details.difficulty_level or 'medium'
             })
-<<<<<<< HEAD
         
         return JsonResponse(response_data)
         
     except Exception as e:
-        logger.error(f"Word details retrieval error: {e}", exc_info=True)
-        return JsonResponse({'error': str(e), 'language': language_code}, status=400)
-=======
-        else:
-            return JsonResponse({
-                'error': 'Word not found',
-                'language': language_code
-            }, status=404)
-    
-    except Exception as e:
         logger.error(f"Word details retrieval error: {e}")
-        return JsonResponse({
-            'error': str(e),
-            'language': language_code
-        }, status=400)
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
+        return JsonResponse({'error': str(e), 'language': language_code}, status=400)

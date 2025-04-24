@@ -15,7 +15,6 @@
             --color-neutral-light: #f8f9fa;/* Very Light Gray */
             --color-neutral-dark: #2c3e50; /* Dark Blue-Gray */
             --color-background: #ecf0f1;   /* Soft Gray */
-<<<<<<< HEAD
         }
 
         body {
@@ -151,6 +150,11 @@
             color: white;
         }
 
+        .button.repeat {
+            background-color: var(--color-success);
+            color: white;
+        }
+
         .button:hover {
             opacity: 0.9;
             transform: translateY(-2px);
@@ -172,41 +176,67 @@
             font-size: 18px;
         }
 
-        /* New styles for meaning section */
+        /* Enhanced styles for meaning section */
         #meaning-section {
             display: flex;
             flex-direction: column;
             background-color: rgba(52, 152, 219, 0.1);
             border-left: 4px solid var(--color-primary);
+            padding: 15px;
         }
 
         .meaning-title {
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             color: var(--color-primary);
+            font-size: 1.1em;
+            border-bottom: 1px solid rgba(52, 152, 219, 0.3);
+            padding-bottom: 8px;
         }
 
         .meaning-content {
-            margin-left: 10px;
+            margin-left: 5px;
         }
 
         .meaning-pos {
             font-style: italic;
             color: var(--color-neutral-dark);
-            margin-top: 10px;
+            margin-top: 15px;
             font-weight: bold;
+            background-color: rgba(52, 152, 219, 0.05);
+            padding: 5px 10px;
+            border-radius: 4px;
         }
 
         .meaning-definition {
             margin-left: 15px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            margin-top: 5px;
+            line-height: 1.4;
         }
 
         .meaning-examples {
             margin-left: 25px;
             font-style: italic;
             color: #555;
-            font-size: 0.9em;
+            font-size: 0.95em;
+            border-left: 2px solid rgba(52, 152, 219, 0.3);
+            padding-left: 10px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+
+        .meaning-section-divider {
+            border-top: 1px dashed rgba(52, 152, 219, 0.2);
+            margin: 12px 0;
+        }
+
+        .pronunciation-hints {
+            background-color: rgba(46, 204, 113, 0.1);
+            border-left: 4px solid var(--color-success);
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 4px;
         }
         
         /* Audio icon button */
@@ -246,162 +276,67 @@
         
         .audio-icon:hover {
             color: #2980b9;
-=======
         }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: var(--color-background);
-            margin: 0;
-            color: var(--color-neutral-dark);
-            line-height: 1.6;
-        }
-
-        .navbar {
-            background-color: var(--color-primary);
-            color: white;
-            padding: 15px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .navbar-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-
-        .language-selector {
+        
+        .audio-message {
             text-align: center;
-            margin: 20px 0;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
-
-        .language-selector select {
-            padding: 10px;
-            font-size: 16px;
-            border: 2px solid var(--color-primary);
-            border-radius: 6px;
+        
+        .spinner {
+            animation: spin 1.5s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
         }
-
-        .category-section {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 15px;
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-
-        .word-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
+        
+        .word-parts-container {
+            background-color: rgba(52, 152, 219, 0.05);
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 5px;
         }
-
-        .word-button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--color-primary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s;
+        
+        .word-part-item {
+            margin-bottom: 5px;
         }
-
-        .word-button:hover {
-            background-color: #2980b9;
-            transform: scale(1.05);
-        }
-
-        #results-container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: var(--color-neutral-light);
-            border: 1px solid var(--color-primary);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 20px;
-            display: none;
-        }
-
-        .result-item {
-            margin-bottom: 10px;
-            padding: 12px 15px;
-            border-radius: 6px;
-            font-weight: 500;
-            transition: background-color 0.3s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        #status {
-            background-color: var(--color-primary);
-            color: white;
-        }
-
-        #expected {
-            background-color: var(--color-background);
-            color: var(--color-neutral-dark);
-            border-left: 4px solid var(--color-primary);
-        }
-
-        .result-item.correct {
-            background-color: rgba(46, 204, 113, 0.1);
-            color: var(--color-success);
-            border-left: 4px solid var(--color-success);
-        }
-
-        .result-item.incorrect {
-            background-color: rgba(231, 76, 60, 0.1);
-            color: var(--color-error);
-            border-left: 4px solid var(--color-error);
-        }
-
-        .button-container {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-        }
-
-        .button {
-            padding: 10px 15px;
-            border-radius: 6px;
-            text-transform: uppercase;
+        
+        .word-part-word {
             font-weight: bold;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .button.clear {
-            background-color: var(--color-error);
-            color: white;
-        }
-
-        .button.back {
-            background-color: var(--color-primary);
-            color: white;
-        }
-
-        .button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        #audio-player {
-            width: 100%;
-            margin-top: 10px;
-            background-color: var(--color-background);
-            border-radius: 6px;
-        }
-
-        .loading-indicator {
-            display: flex;
-            justify-content: center;
-            align-items: center;
             color: var(--color-primary);
-            font-size: 18px;
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
+        }
+
+        /* New styles for audio container */
+        .audio-container {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .audio-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .audio-label {
+            color: var(--color-neutral-dark);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .audio-status {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
     </style>
 </head>
@@ -443,17 +378,17 @@
                 <h2 style="text-align: center; color: var(--color-primary);">{{ category.name }}</h2>
                 <div class="word-grid">
                     {% for word in category.words.all %}
-<<<<<<< HEAD
                         <div class="word-container">
-=======
-                        <div>
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
                             <button class="word-button" onclick="startRecognition('{{ word.text }}')">
-                                🎤 {{ word.text }}
+                                🎤 {% if current_language.code == 'EN' %}
+                                    {{ word.text }}
+                                {% else %}
+                                    {{ word.text }}{% if word.translation %} ({{ word.translation }}){% endif %}
+                                {% endif %}
                             </button>
                             <div class="audio-icon" onclick="playWordAudio('{{ word.text }}')">🔊</div>
                         </div>
-                    {% endfor %}
+                    {% endfor %}                
                 </div>
             </div>
         {% endfor %}
@@ -474,18 +409,24 @@
             <div id="expected" class="result-item"></div>
             <div id="spoken" class="result-item"></div>
             
-            <audio id="audio-player" controls style="display: none;"></audio>
+            <div class="audio-container">
+                <div class="audio-label">Your pronunciation:</div>
+                <audio id="audio-player" controls style="display: none;"></audio>
+                <div class="audio-status" id="audio-status"></div>
+                
+                <div class="audio-label" style="margin-top: 15px;">Correct pronunciation:</div>
+                <audio id="correct-audio-player" controls style="display: none;"></audio>
+                <div class="audio-status" id="correct-audio-status"></div>
+            </div>
             
-<<<<<<< HEAD
             <div id="meaning-section" class="result-item">
                 <div class="meaning-title">Word Meaning</div>
                 <div id="word-meaning" class="meaning-content">Loading meaning...</div>
             </div>            
             
-=======
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
             <div class="button-container" id="action-buttons">
                 <button class="button clear" onclick="clearResults()">Clear Results</button>
+                <button class="button repeat" onclick="repeatCurrentWord()">Try Again</button>
                 <button class="button back" onclick="showWordList()">Go Back to Words</button>
             </div>
         </div>
@@ -495,7 +436,9 @@
     <audio id="word-audio" style="display: none;"></audio>
 
     <script>
-<<<<<<< HEAD
+        // Variable to keep track of current word being tested
+        let currentWord = "";
+        
         // Generate audio URL from word
         function getAudioUrl(word) {
             let selectedLanguage = document.getElementById("language-select").value;
@@ -512,47 +455,89 @@
                 .then(response => {
                     if (response.ok) {
                         // Audio file exists, play it
-                        playAudio(audioUrl);
+                        playAudio(audioUrl, audio);
                     } else {
                         // Audio doesn't exist, generate it first
-                        generateAndPlayAudio(word);
+                        generateAndPlayAudio(word, audio);
                     }
                 })
                 .catch(() => {
                     // Error checking, try to generate
-                    generateAndPlayAudio(word);
+                    generateAndPlayAudio(word, audio);
                 });
         }
         
         // Generate audio file for a word and then play it
-        function generateAndPlayAudio(word) {
+        function generateAndPlayAudio(word, audioElement = null) {
             let selectedLanguage = document.getElementById("language-select").value;
+            let statusElement = audioElement === document.getElementById("correct-audio-player") ? 
+                document.getElementById("correct-audio-status") : null;
+                
+            if (statusElement) {
+                statusElement.textContent = "Generating audio...";
+            }
             
             // Use the audio generation endpoint
             fetch(`/speech/generate-audio/?text=${encodeURIComponent(word)}&language=${selectedLanguage}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.audio_url) {
-                        playAudio(data.audio_url);
+                        if (statusElement) {
+                            statusElement.textContent = "Audio ready";
+                        }
+                        
+                        if (audioElement) {
+                            playAudio(data.audio_url, audioElement);
+                        } else {
+                            playAudio(data.audio_url, document.getElementById("word-audio"));
+                        }
                     }
                 })
                 .catch(error => {
                     console.error("Error generating audio:", error);
+                    if (statusElement) {
+                        statusElement.textContent = "Error generating audio";
+                    }
                 });
         }
         
-        // Play audio from URL
-        function playAudio(audioUrl) {
-            let audio = document.getElementById("word-audio");
-            audio.src = audioUrl;
+        // Play audio from URL using specified audio element
+        function playAudio(audioUrl, audioElement) {
+            if (!audioElement) {
+                audioElement = document.getElementById("word-audio");
+            }
+            
+            audioElement.src = audioUrl;
             
             // Play the audio
-            audio.play().catch(error => {
+            audioElement.play().catch(error => {
                 console.warn("Audio playback error:", error);
             });
         }
         
+        // Function to generate correct pronunciation for the word
+        function generateCorrectPronunciation(word) {
+            let correctAudioPlayer = document.getElementById("correct-audio-player");
+            let correctAudioStatus = document.getElementById("correct-audio-status");
+            
+            correctAudioPlayer.style.display = "block";
+            correctAudioStatus.textContent = "Generating correct pronunciation...";
+            
+            // Generate the audio for correct pronunciation
+            generateAndPlayAudio(word, correctAudioPlayer);
+        }
+        
+        // Function to repeat current word test
+        function repeatCurrentWord() {
+            if (currentWord) {
+                startRecognition(currentWord);
+            }
+        }
+        
         function startRecognition(word) {
+            // Store current word for retry functionality
+            currentWord = word;
+            
             clearResults();
             let resultsContainer = document.getElementById("results-container");
             let loadingSection = document.getElementById("loading-section");
@@ -563,10 +548,10 @@
             loadingSection.style.display = "flex";
             resultDetails.style.display = "block";
             resultsContainer.scrollIntoView({ behavior: 'smooth' });
-    
+        
             let selectedLanguage = document.getElementById("language-select").value;
             document.getElementById("loading-text").innerText = `Recognizing "${word}"...`;
-    
+        
             // Speech recognition call
             fetch(`/speech/recognize/${encodeURIComponent(word)}/?language=${selectedLanguage}`)
                 .then(response => {
@@ -582,6 +567,7 @@
                     let expectedElement = document.getElementById("expected");
                     let spokenElement = document.getElementById("spoken");
                     let audioPlayer = document.getElementById("audio-player");
+                    let audioStatus = document.getElementById("audio-status");
     
                     statusElement.innerHTML = data.message || `Processing Complete`;
                     statusElement.className = data.status === "success" ? 
@@ -596,28 +582,35 @@
                         data.status === "success" ? "result-item correct" : "result-item incorrect";
     
                     if (data.audio_url) {
-                        // Create a new Audio element to ensure better browser compatibility
-                        let audioPlayer = document.getElementById("audio-player");
+                        // Display user's recorded pronunciation
                         audioPlayer.src = data.audio_url;
                         audioPlayer.style.display = "block";
-                        audioPlayer.controls = true;  // Always show controls
+                        audioPlayer.controls = true;
+                        audioStatus.textContent = "Your recorded pronunciation";
                         
-                        // Try to play automatically but prepare for failure due to browser policies
+                        // Try to play automatically
                         const playPromise = audioPlayer.play();
                         
                         if (playPromise !== undefined) {
                             playPromise.then(_ => {
-                                // Automatic playback started successfully
                                 console.log("Audio playback started successfully");
+                                
+                                // After user's pronunciation finishes, generate and play correct pronunciation
+                                audioPlayer.onended = function() {
+                                    generateCorrectPronunciation(word);
+                                };
+                                
                             }).catch(error => {
                                 console.warn("Autoplay was prevented:", error);
-                                // Show a play button or message to the user
-                                let audioMessage = document.createElement("div");
-                                audioMessage.className = "audio-message";
-                                audioMessage.innerHTML = "⚠️ Click the audio player to listen";
-                                audioPlayer.parentNode.insertBefore(audioMessage, audioPlayer.nextSibling);
+                                audioStatus.textContent = "⚠️ Click to listen to your pronunciation";
+                                
+                                // Still generate the correct pronunciation even if autoplay fails
+                                generateCorrectPronunciation(word);
                             });
                         }
+                    } else {
+                        // If no user audio available, still generate correct pronunciation
+                        generateCorrectPronunciation(word);
                     }
                     
                     // Display meaning from recognition response if available
@@ -626,64 +619,6 @@
                     }
                 })
                 .catch(error => {
-=======
-        function startRecognition(word) {
-            clearResults();
-            let resultsContainer = document.getElementById("results-container");
-            let loadingSection = document.getElementById("loading-section");
-            let resultDetails = document.getElementById("result-details");
-            
-            resultsContainer.style.display = "block";
-            loadingSection.style.display = "flex";
-            resultDetails.style.display = "block";
-            resultsContainer.scrollIntoView({ behavior: 'smooth' });
-
-            let selectedLanguage = document.getElementById("language-select").value;
-            document.getElementById("loading-text").innerText = `Recognizing "${word}"...`;
-
-            fetch(`/speech/recognize/${word}/?lang=${selectedLanguage}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Speech recognition failed');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    loadingSection.style.display = "none";
-
-                    let statusElement = document.getElementById("status");
-                    let expectedElement = document.getElementById("expected");
-                    let spokenElement = document.getElementById("spoken");
-                    let audioPlayer = document.getElementById("audio-player");
-
-                    statusElement.innerHTML = `Processing Complete`;
-                    statusElement.className = "result-item";
-
-                    expectedElement.innerHTML = `Expected: ${data.expected_word}`;
-                    expectedElement.className = "result-item";
-
-                    spokenElement.innerHTML = 
-                        data.expected_word.toLowerCase() === data.spoken_word.toLowerCase() 
-                        ? `Spoken: ${data.spoken_word}` 
-                        : `Spoken: ${data.spoken_word}`;
-                    spokenElement.className = 
-                        data.expected_word.toLowerCase() === data.spoken_word.toLowerCase() 
-                        ? "result-item correct" 
-                        : "result-item incorrect";
-
-                    if (data.audio_url) {
-                        audioPlayer.src = data.audio_url;
-                        audioPlayer.style.display = "block";
-                        
-                        audioPlayer.autoplay = true;
-                        audioPlayer.play().catch(error => {
-                            console.error("Autoplay failed:", error);
-                            audioPlayer.controls = true;
-                        });
-                    }
-                })
-                .catch(error => {
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
                     console.error("Speech recognition error:", error);
                     
                     loadingSection.style.display = "none";
@@ -691,75 +626,117 @@
                     let statusElement = document.getElementById("status");
                     statusElement.innerHTML = `Error: ${error.message}`;
                     statusElement.className = "result-item incorrect";
-<<<<<<< HEAD
                 });
             
             // Fetch detailed word information with WordNet meanings
             fetch(`/get-word-details/${encodeURIComponent(word)}/?language=${selectedLanguage}`)
-                .then(response => response.json())
-                .then(data => {
-                    let meaningContent = "";
-                    
-                    if (data.meanings && data.meanings.length > 0) {
-                        // Process structured meanings from WordNet
-                        data.meanings.forEach(meaning => {
-                            if (meaning.pos) {
-                                // Standard meaning entry
-                                meaningContent += `<div class="meaning-pos">${meaning.pos}</div>`;
-                                meaningContent += `<div class="meaning-definition">${meaning.definition}</div>`;
+            .then(response => response.json())
+            .then(data => {
+                let meaningContent = "";
+                
+                // Only add the Info section if data.info exists and is not undefined or null
+                if (data.info && typeof data.info === 'string' && data.info !== 'undefined') {
+                    meaningContent += `<div class="meaning-pos">Info</div>`;
+                    meaningContent += `<div class="meaning-definition">${data.info}</div>`;
+                }
+                
+                // Process meanings
+                if (data.meanings && data.meanings.length > 0) {
+                    // Process structured meanings from WordNet
+                    data.meanings.forEach((meaning, index) => {
+                        // Add a divider between meanings except for the first one
+                        if (index > 0) {
+                            meaningContent += `<div class="meaning-section-divider"></div>`;
+                        }
+                        
+                        if (meaning.pos) {
+                            // Standard meaning entry with part of speech
+                            meaningContent += `<div class="meaning-pos">${meaning.pos}</div>`;
+                            meaningContent += `<div class="meaning-definition">${meaning.definition}</div>`;
+                            
+                            if (meaning.examples && meaning.examples.length > 0) {
+                                meaningContent += `<div class="meaning-examples">Example: ${meaning.examples[0]}</div>`;
                                 
-                                if (meaning.examples && meaning.examples.length > 0) {
-                                    meaningContent += `<div class="meaning-examples">Example: ${meaning.examples[0]}</div>`;
+                                // Add additional examples if available
+                                if (meaning.examples.length > 1) {
+                                    for (let i = 1; i < Math.min(meaning.examples.length, 3); i++) {
+                                        meaningContent += `<div class="meaning-examples">Example: ${meaning.examples[i]}</div>`;
+                                    }
                                 }
-                            } else if (meaning.word_parts) {
-                                // Individual word parts for phrases
-                                meaningContent += `<div class="meaning-pos">Phrase components:</div>`;
-                                for (const [partWord, partDetails] of Object.entries(meaning.word_parts)) {
-                                    meaningContent += `<div class="meaning-definition"><b>${partWord}</b>: ${partDetails.definition} (${partDetails.pos})</div>`;
-                                }
-                            } else if (typeof meaning === 'string') {
-                                // Simple string meaning
-                                meaningContent += `<div class="meaning-definition">${meaning}</div>`;
                             }
-                        });
-                    } else {
-                        meaningContent = "No definition found.";
-                    }
-                    
-                    // Display word metadata if available
-                    if (data.pronunciation_hints) {
-                        meaningContent += `<div class="meaning-pos">Pronunciation hints:</div>`;
-                        meaningContent += `<div class="meaning-definition">${data.pronunciation_hints}</div>`;
-                    }
-                    
-                    meaningSection.innerHTML = meaningContent;
-                })
-                .catch(error => {
-                    console.error("Error fetching word details:", error);
-                    meaningSection.innerHTML = "Error fetching meaning information.";
-=======
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
-                });
+                            
+                            // Add synonyms if available
+                            if (meaning.synonyms && meaning.synonyms.length > 0) {
+                                meaningContent += `<div class="meaning-definition"><em>Synonyms:</em> ${meaning.synonyms.join(", ")}</div>`;
+                            }
+                            
+                            // Add antonyms if available
+                            if (meaning.antonyms && meaning.antonyms.length > 0) {
+                                meaningContent += `<div class="meaning-definition"><em>Antonyms:</em> ${meaning.antonyms.join(", ")}</div>`;
+                            }
+                        } else if (meaning.word_parts) {
+                            // Individual word parts for phrases
+                            meaningContent += `<div class="meaning-pos">Phrase components:</div>`;
+                            meaningContent += `<div class="word-parts-container">`;
+                            for (const [partWord, partDetails] of Object.entries(meaning.word_parts)) {
+                                meaningContent += `<div class="word-part-item">`;
+                                meaningContent += `<span class="word-part-word">${partWord}</span>: ${partDetails.definition} <em>(${partDetails.pos})</em>`;
+                                meaningContent += `</div>`;
+                            }
+                            meaningContent += `</div>`;
+                        } else if (typeof meaning === 'string') {
+                            // Simple string meaning
+                            meaningContent += `<div class="meaning-definition">${meaning}</div>`;
+                        }
+                    });
+                } else {
+                    meaningContent = "No definition found.";
+                }
+                
+                // Display word metadata if available
+                if (data.pronunciation_hints) {
+                    meaningContent += `<div class="pronunciation-hints">`;
+                    meaningContent += `<div class="meaning-pos">Pronunciation hints:</div>`;
+                    meaningContent += `<div class="meaning-definition">${data.pronunciation_hints}</div>`;
+                    meaningContent += `</div>`;
+                }
+                
+                // Display phonetic transcription if available
+                if (data.phonetic) {
+                    meaningContent += `<div class="meaning-definition"><strong>Phonetic:</strong> ${data.phonetic}</div>`;
+                }
+                
+                // Display language-specific usage notes if available
+                if (data.usage_notes) {
+                    meaningContent += `<div class="pronunciation-hints">`;
+                    meaningContent += `<div class="meaning-pos">Usage notes:</div>`;
+                    meaningContent += `<div class="meaning-definition">${data.usage_notes}</div>`;
+                    meaningContent += `</div>`;
+                }
+                
+                meaningSection.innerHTML = meaningContent;
+            })
+            .catch(error => {
+                console.error("Error fetching word details:", error);
+                meaningSection.innerHTML = "Error fetching meaning information.";
+            });
         }
-        
+
         function clearResults() {
             let resultsContainer = document.getElementById("results-container");
             let statusElement = document.getElementById("status");
             let expectedElement = document.getElementById("expected");
             let spokenElement = document.getElementById("spoken");
             let audioPlayer = document.getElementById("audio-player");
-<<<<<<< HEAD
+            let audioStatus = document.getElementById("audio-status");
+            let correctAudioPlayer = document.getElementById("correct-audio-player");
+            let correctAudioStatus = document.getElementById("correct-audio-status");
             let meaningElement = document.getElementById("word-meaning");
-=======
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
             
             statusElement.innerText = "";
             expectedElement.innerText = "";
             spokenElement.innerText = "";
-<<<<<<< HEAD
             meaningElement.innerHTML = "Loading meaning...";
-=======
->>>>>>> 87bc3c2225dfc195908054f0811ab69d497c0cd8
             
             statusElement.className = "result-item";
             expectedElement.className = "result-item";
@@ -767,6 +744,17 @@
             
             audioPlayer.style.display = "none";
             audioPlayer.src = "";
+            audioStatus.textContent = "";
+            
+            correctAudioPlayer.style.display = "none";
+            correctAudioPlayer.src = "";
+            correctAudioStatus.textContent = "";
+            
+            // Remove any audio message elements
+            const audioMessages = document.getElementsByClassName("audio-message");
+            while (audioMessages.length > 0) {
+                audioMessages[0].parentNode.removeChild(audioMessages[0]);
+            }
         }
         
         function showWordList() {
