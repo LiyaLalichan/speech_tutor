@@ -813,44 +813,69 @@
                     });
                 
                     fetch(`/get-word-details/${encodeURIComponent(word)}/?language=${selectedLanguage}`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
                         let meaningContent = "";
-                    
-                        // Add Info section if exists
-                        if (data.info && typeof data.info === 'string' && data.info !== 'undefined') {
-                            meaningContent += `<div class="meaning-pos">Info</div>`;
-                            meaningContent += `<div class="meaning-definition">${data.info}</div>`;
+                        
+                        // Check if we received meaningful data
+                        if (!data || (Object.keys(data).length === 0) || 
+                            (!data.info && (!data.meanings || data.meanings.length === 0))) {
+                            // No meaningful data available
+                            meaningContent = `<div class="meaning-unavailable">
+                                <p>Word information currently unavailable.</p>
+                                <p>Please try another word or check back later.</p>
+                            </div>`;
+                        } else {
+                            // Add Info section if exists
+                            if (data.info && typeof data.info === 'string' && data.info !== 'undefined') {
+                                meaningContent += `<div class="meaning-pos">Info</div>`;
+                                meaningContent += `<div class="meaning-definition">${data.info}</div>`;
+                            }
+                        
+                            // Show only the first meaning (if available)
+                            if (data.meanings && data.meanings.length > 0) {
+                                let firstMeaning = data.meanings[0];
+                                
+                                if (firstMeaning.pos) {
+                                    meaningContent += `<div class="meaning-pos">${firstMeaning.pos}</div>`;
+                                }
+                        
+                                if (firstMeaning.definition) {
+                                    meaningContent += `<div class="meaning-definition">${firstMeaning.definition}</div>`;
+                                } else {
+                                    meaningContent += `<div class="meaning-definition">Definition not available</div>`;
+                                }
+                        
+                                // If example sentences are available
+                                if (firstMeaning.examples && firstMeaning.examples.length > 0) {
+                                    meaningContent += `<div class="example-header">Examples:</div>`;
+                                    meaningContent += `<ul class="example-list">`;
+                                    firstMeaning.examples.forEach(example => {
+                                        meaningContent += `<li class="example-sentence">"${example}"</li>`;
+                                    });
+                                    meaningContent += `</ul>`;
+                                } else {
+                                    meaningContent += `<div class="no-examples">No example sentences available</div>`;
+                                }
+                            }
                         }
-                    
-                        // Show only the first meaning (if available)
-                        if (data.meanings && data.meanings.length > 0) {
-                            let firstMeaning = data.meanings[0];
-                            
-                            if (firstMeaning.pos) {
-                                meaningContent += `<div class="meaning-pos">${firstMeaning.pos}</div>`;
-                            }
-                    
-                            if (firstMeaning.definition) {
-                                meaningContent += `<div class="meaning-definition">${firstMeaning.definition}</div>`;
-                            }
-                    
-                            // If example sentences are available
-                            if (firstMeaning.examples && firstMeaning.examples.length > 0) {
-                                meaningContent += `<div class="example-header">Examples:</div>`;
-                                meaningContent += `<ul class="example-list">`;
-                                firstMeaning.examples.forEach(example => {
-                                    meaningContent += `<li class="example-sentence">"${example}"</li>`;
-                                });
-                                meaningContent += `</ul>`;
-                            }
-                        }
-                    
+                        
                         // Display in the meaning section
-                        document.getElementById("word-meaning").innerHTML = meaningContent;
+                        document.getElementById("word-meaning").innerHTML = meaningContent || 
+                            `<div class="no-meaning">No meaning information available for "${word}"</div>`;
                     })
                     .catch(error => {
                         console.error("Error fetching word details:", error);
+                        document.getElementById("word-meaning").innerHTML = 
+                            `<div class="error-message">
+                                <p>Unable to retrieve word information.</p>
+                                <p>Please check your connection and try again.</p>
+                            </div>`;
                     });
     }
     
