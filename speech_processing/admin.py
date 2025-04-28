@@ -1,7 +1,9 @@
 # In speech_processing/admin.py
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Category, Language, ExpectedSpeech
+from .models import Category, Language, ExpectedSpeech,SpeechRecord
+
+# Your existing Language and Category admin classes remain the same
 
 @admin.register(Language)
 class LanguageAdmin(admin.ModelAdmin):
@@ -65,3 +67,55 @@ class CategoryAdmin(admin.ModelAdmin):
         # Implementation for duplicating categories
         pass
     duplicate_to_language.short_description = "Duplicate selected categories to another language"
+
+
+@admin.register(ExpectedSpeech)
+class ExpectedSpeechAdmin(admin.ModelAdmin):
+    list_display = ('text', 'translation', 'category_display', 'language_display', 
+                    'difficulty_level', 'order')
+    list_filter = ('language', 'category', 'difficulty_level')
+    search_fields = ('text', 'translation')
+    list_editable = ('order', 'difficulty_level')
+    autocomplete_fields = ['category']
+    
+    def language_display(self, obj):
+        if obj.language:
+            return format_html(
+                '<span style="display: inline-block; padding: 2px 6px; background-color: #f0f0f0; border-radius: 3px;">{}</span>',
+                obj.language.name
+            )
+        return "No Language"
+    language_display.short_description = "Language"
+    language_display.admin_order_field = 'language__name'
+    
+    def category_display(self, obj):
+        if obj.category:
+            return obj.category.name
+        return "Uncategorized"
+    category_display.short_description = "Category"
+    
+    fieldsets = (
+        (None, {
+            'fields': ('text', 'translation', 'language', 'category', 'difficulty_level', 'order')
+        }),
+    )
+    
+    # Optional: Add bulk import action
+    actions = ['bulk_import_words']
+    
+    def bulk_import_words(self, request, queryset):
+        # You can implement CSV import functionality here
+        pass
+    bulk_import_words.short_description = "Import words from CSV"
+
+# Optionally, you can also register the SpeechRecord model
+@admin.register(SpeechRecord)
+class SpeechRecordAdmin(admin.ModelAdmin):
+    list_display = ('text_preview', 'expected_speech', 'language', 'created_at')
+    list_filter = ('language', 'created_at')
+    search_fields = ('text', 'expected_speech__text')
+    readonly_fields = ('created_at',)
+    
+    def text_preview(self, obj):
+        return obj.text[:50] + ('...' if len(obj.text) > 50 else '')
+    text_preview.short_description = "Speech Text"
